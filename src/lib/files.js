@@ -1,10 +1,29 @@
 import { AwsClient } from "aws4fetch";
 
 export async function createUploadPlan(env, input) {
+  if (!env.DB) {
+    throw new Error("D1 binding is required to create upload plans");
+  }
+
   const fileId = crypto.randomUUID();
   const now = new Date();
   const storageKey = buildStorageKey(now, fileId, input.filename);
   const uploadUrl = await createPresignedUploadUrl(env, storageKey, input.contentType);
+  const createdAt = now.toISOString();
+
+  try {
+    await env.DB.prepare(
+      `insert into upload_plans (file_id, storage_key, filename, content_type, created_at, completed_at)
+       values (?, ?, ?, ?, ?, null)`,
+    )
+      .bind(fileId, storageKey, input.filename, input.contentType, createdAt)
+      .run();
+  } catch (error) {
+    if (String(error?.message || "").toLowerCase().includes("no such table")) {
+      throw new Error("The upload_plans migration has not been applied");
+    }
+    throw error;
+  }
 
   return {
     fileId,
@@ -17,38 +36,71 @@ export async function createUploadPlan(env, input) {
 }
 
 export async function completeUpload(env, input) {
-  const object = await waitForObject(env, input.storageKey);
+  if (!env.DB) {
+    throw new Error("D1 binding is required to complete uploads");
+  }
+
+  let uploadPlan;
+  try {
+    uploadPlan = await env.DB.prepare(
+      `select file_id, storage_key, filename, content_type, completed_at
+       from upload_plans
+       where file_id = ?
+       limit 1`,
+    )
+      .bind(input.fileId)
+      .first();
+  } catch (error) {
+    if (String(error?.message || "").toLowerCase().includes("no such table")) {
+      throw new Error("The upload_plans migration has not been applied");
+    }
+    throw error;
+  }
+
+  if (!uploadPlan || uploadPlan.completed_at) {
+    throw new Error("Upload plan was not found or has already been completed");
+  }
+
+  const object = await waitForObject(env, uploadPlan.storage_key);
   if (!object) {
     throw new Error("Uploaded object was not found in R2");
   }
 
   const createdAt = new Date().toISOString();
   const tags = normalizeTags(input.tags);
-  await env.DB.prepare(
-    `insert into files (id, filename, storage_key, size, content_type, tags_json, note, created_at, updated_at, deleted_at)
-     values (?, ?, ?, ?, ?, ?, ?, ?, ?, null)`,
-  )
-    .bind(
-      input.fileId,
-      input.filename,
-      input.storageKey,
-      Number(input.size),
-      input.contentType,
-      JSON.stringify(tags),
-      input.note || "",
-      createdAt,
-      createdAt,
+  const objectSize = Number(object.size || 0);
+  const contentType = object.httpMetadata?.contentType || uploadPlan.content_type || "application/octet-stream";
+  const note = normalizeNote(input.note);
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `insert into files (id, filename, storage_key, size, content_type, tags_json, note, created_at, updated_at, deleted_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, null)`,
     )
-    .run();
+      .bind(
+        uploadPlan.file_id,
+        uploadPlan.filename,
+        uploadPlan.storage_key,
+        objectSize,
+        contentType,
+        JSON.stringify(tags),
+        note,
+        createdAt,
+        createdAt,
+      ),
+    env.DB.prepare(
+      `update upload_plans set completed_at = ? where file_id = ?`,
+    ).bind(createdAt, uploadPlan.file_id),
+  ]);
 
   return {
-    id: input.fileId,
-    filename: input.filename,
-    storageKey: input.storageKey,
-    size: Number(input.size),
-    contentType: input.contentType,
+    id: uploadPlan.file_id,
+    filename: uploadPlan.filename,
+    storageKey: uploadPlan.storage_key,
+    size: objectSize,
+    contentType,
     tags,
-    note: input.note || "",
+    note: note || "",
     createdAt,
   };
 }
@@ -125,6 +177,7 @@ async function createPresignedUploadUrl(env, storageKey, contentType) {
     {
       aws: {
         signQuery: true,
+        expires: 300,
       },
     },
   );
@@ -145,4 +198,13 @@ function normalizeTags(tags) {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function normalizeNote(note) {
+  if (note === null || note === undefined) {
+    return null;
+  }
+
+  const trimmed = String(note).trim();
+  return trimmed ? trimmed : null;
 }

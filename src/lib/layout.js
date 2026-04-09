@@ -1100,7 +1100,6 @@ export function renderAppPage({ authenticated, files }) {
           <tr>
             <td><div class="name-cell">\${escapeHtml(file.filename)}</div></td>
             <td><div class="subtle">\${formatBytes(file.size)}</div></td>
-            <td><div class="subtle">\${escapeHtml(file.storageKey)}</div></td>
             <td><div class="tag-row">\${(file.tags || []).map((tag) => \`<span class="tag">\${escapeHtml(tag)}</span>\`).join("") || '<span class="subtle">No tags</span>'}</div></td>
             <td><div class="subtle">\${new Date(file.createdAt).toLocaleString()}</div></td>
             <td>\${renderShareState(file)}</td>
@@ -1121,7 +1120,6 @@ export function renderAppPage({ authenticated, files }) {
                 <tr>
                   <th>Name</th>
                   <th>Size</th>
-                  <th>Storage Key</th>
                   <th>Tags</th>
                   <th>Created</th>
                   <th>Share</th>
@@ -1322,10 +1320,6 @@ export function renderAppPage({ authenticated, files }) {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
               fileId: initData.fileId,
-              storageKey: initData.storageKey,
-              filename: file.name,
-              size: file.size,
-              contentType: file.type || "application/octet-stream",
               tags,
               note
             })

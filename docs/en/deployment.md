@@ -32,12 +32,17 @@ Set the following secrets for production:
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
 
+## Login protection
+
+Protect `POST /api/auth/login` with a Cloudflare WAF or rate-limit rule in production. BurnBox does not keep lockout state in application storage.
+
 ## Database migration
 
 Apply the schema before the first deployment:
 
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 ```
 
 ## Deploy

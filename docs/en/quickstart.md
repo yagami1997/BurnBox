@@ -23,12 +23,14 @@ Copy `wrangler.toml.template` to `wrangler.toml` and replace the placeholder val
 
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 ```
 
 For local development with D1 emulation, you may also want to run:
 
 ```bash
 npx wrangler d1 execute burnbox --local --file=./migrations/0001_initial.sql
+npx wrangler d1 execute burnbox --local --file=./migrations/0002_upload_plans.sql
 ```
 
 ## 4. Configure secrets

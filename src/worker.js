@@ -1,6 +1,6 @@
 import { recordAuditLog } from "./lib/audit.js";
 import { completeUpload, createUploadPlan, deleteFile } from "./lib/files.js";
-import { html, json, noContent, readJson } from "./lib/http.js";
+import { html, json, noContent, readJson, timingSafeEqual } from "./lib/http.js";
 import { renderAppPage } from "./lib/layout.js";
 import { listFiles } from "./lib/repository.js";
 import { createShare, resolveShareForDownload, revokeShare } from "./lib/shares.js";
@@ -43,7 +43,7 @@ async function route(request, env) {
       return json({ error: "Worker secret configuration is incomplete" }, { status: 500 });
     }
 
-    if (body.password !== env.ADMIN_PASSWORD) {
+    if (!timingSafeEqual(String(body.password || ""), String(env.ADMIN_PASSWORD || ""))) {
       return json({ error: "Invalid password" }, { status: 401 });
     }
 
@@ -83,11 +83,19 @@ async function route(request, env) {
       return json({ error: "filename and size are required" }, { status: 400 });
     }
 
-    const uploadPlan = await createUploadPlan(env, {
-      filename: body.filename,
-      size: Number(body.size),
-      contentType: body.contentType || "application/octet-stream",
-    });
+    let uploadPlan;
+    try {
+      uploadPlan = await createUploadPlan(env, {
+        filename: body.filename,
+        size: Number(body.size),
+        contentType: body.contentType || "application/octet-stream",
+      });
+    } catch (error) {
+      if (String(error?.message || "").includes("upload_plans migration")) {
+        return json({ error: error.message }, { status: 500 });
+      }
+      throw error;
+    }
 
     await recordAuditLog(env, {
       actor: session.sub,
@@ -109,19 +117,27 @@ async function route(request, env) {
     }
 
     const body = await readJson(request);
-    if (!body?.fileId || !body?.storageKey || !body?.filename) {
-      return json({ error: "fileId, storageKey and filename are required" }, { status: 400 });
+    if (!body?.fileId) {
+      return json({ error: "fileId is required" }, { status: 400 });
     }
 
-    const file = await completeUpload(env, {
-      fileId: body.fileId,
-      storageKey: body.storageKey,
-      filename: body.filename,
-      size: Number(body.size || 0),
-      contentType: body.contentType || "application/octet-stream",
-      tags: body.tags,
-      note: body.note,
-    });
+    let file;
+    try {
+      file = await completeUpload(env, {
+        fileId: body.fileId,
+        tags: body.tags,
+        note: body.note,
+      });
+    } catch (error) {
+      const message = String(error?.message || "");
+      if (message === "Upload plan was not found or has already been completed") {
+        return json({ error: message }, { status: 409 });
+      }
+      if (message.includes("upload_plans migration")) {
+        return json({ error: message }, { status: 500 });
+      }
+      throw error;
+    }
 
     await recordAuditLog(env, {
       actor: session.sub,
@@ -228,8 +244,11 @@ async function route(request, env) {
     }
 
     const revoked = await revokeShare(env, shareId);
-    if (!revoked) {
+    if (revoked.status === "missing") {
       return json({ error: "Share not found" }, { status: 404 });
+    }
+    if (revoked.status === "already_revoked") {
+      return json({ error: "Share is already revoked" }, { status: 409 });
     }
 
     await recordAuditLog(env, {
@@ -274,7 +293,7 @@ function renderShareError(status) {
     revoked: { title: "Share revoked", description: "The owner has revoked this link." },
     expired: { title: "Share expired", description: "This temporary link has expired." },
     depleted: { title: "Download limit reached", description: "This link has no remaining downloads." },
-    missing_object: { title: "File unavailable", description: "The linked file is no longer available." },
+    missing_object: { title: "File unavailable", description: "The storage backend is missing the object for this share." },
   }[status] || { title: "Unavailable", description: "This share cannot be used right now." };
 
   return html(
@@ -345,9 +364,10 @@ function renderShareError(status) {
           </article>
         </body>
       </html>`,
-    { status: status === "missing" ? 404 : 410 },
+    { status: status === "missing" ? 404 : status === "missing_object" ? 503 : 410 },
   );
 }
+
 
 function contentDisposition(filename) {
   const encoded = encodeURIComponent(filename).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);

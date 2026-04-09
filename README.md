@@ -129,11 +129,14 @@ For researchers and builders, the project is useful as a concrete example of how
 ## Project Structure
 
 - `src/worker.js`: Worker entrypoint and route handling
+- `src/lib/http.js`: response helpers, cookie parsing, and timing-safe comparison
+- `src/lib/audit.js`: audit log write helper
 - `src/lib/session.js`: signed session handling
 - `src/lib/files.js`: upload planning, upload completion, deletion
 - `src/lib/shares.js`: share creation, revoke, and download resolution
 - `src/lib/repository.js`: file list query layer
 - `migrations/0001_initial.sql`: initial D1 schema
+- `migrations/0002_upload_plans.sql`: upload plan table for server-validated completion flow
 
 ## Quick Start
 
@@ -151,6 +154,7 @@ npm install
 
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 ```
 
 5. Configure production secrets.
@@ -200,6 +204,7 @@ npm run dev
 ## Notes
 
 - Direct browser uploads require R2 CORS configuration for your admin origin.
+- Protect `POST /api/auth/login` with a Cloudflare WAF or rate-limit rule in production.
 - Example configuration files in this repository use placeholders only.
 - Public documentation timestamps are shown in California time (`PDT`) for release consistency.
 

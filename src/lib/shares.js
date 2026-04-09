@@ -37,14 +37,27 @@ export async function createShare(env, request) {
 }
 
 export async function revokeShare(env, shareId) {
+  const share = await env.DB.prepare(
+    `select id, revoked_at from shares where id = ? limit 1`,
+  )
+    .bind(shareId)
+    .first();
+
+  if (!share) {
+    return { status: "missing" };
+  }
+  if (share.revoked_at) {
+    return { status: "already_revoked" };
+  }
+
   const revokedAt = new Date().toISOString();
   const result = await env.DB.prepare(
-    `update shares set revoked_at = coalesce(revoked_at, ?) where id = ?`,
+    `update shares set revoked_at = ? where id = ? and revoked_at is null`,
   )
     .bind(revokedAt, shareId)
     .run();
 
-  return result.meta.changes > 0;
+  return result.meta.changes > 0 ? { status: "revoked" } : { status: "already_revoked" };
 }
 
 export async function resolveShareForDownload(env, token) {
@@ -80,10 +93,6 @@ export async function resolveShareForDownload(env, token) {
   if (Date.parse(share.expires_at) <= now) {
     return { status: "expired" };
   }
-  if (share.max_downloads !== null && share.download_count >= share.max_downloads) {
-    return { status: "depleted" };
-  }
-
   const update = await env.DB.prepare(
     `update shares
       set download_count = download_count + 1
@@ -103,6 +112,8 @@ export async function resolveShareForDownload(env, token) {
   if (!object) {
     return { status: "missing_object" };
   }
+
+  share.download_count += 1;
 
   return {
     status: "ready",

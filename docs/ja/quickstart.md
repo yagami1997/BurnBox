@@ -23,12 +23,14 @@ npm install
 
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 ```
 
 ローカル D1 エミュレーションも使う場合は、次も実行できます。
 
 ```bash
 npx wrangler d1 execute burnbox --local --file=./migrations/0001_initial.sql
+npx wrangler d1 execute burnbox --local --file=./migrations/0002_upload_plans.sql
 ```
 
 ## 4. Secrets を設定

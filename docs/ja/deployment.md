@@ -32,12 +32,17 @@ BurnBox には以下が必要です。
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
 
+## ログイン保護
+
+本番では `POST /api/auth/login` に対して Cloudflare WAF または rate-limit rule を設定してください。BurnBox はアプリケーション内部に lockout 状態を保持しません。
+
 ## スキーマ適用
 
 初回デプロイ前にスキーマを適用します。
 
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 ```
 
 ## デプロイ

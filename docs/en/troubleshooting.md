@@ -25,6 +25,7 @@ Check:
 
 - the file still exists
 - D1 schema is up to date
+- the `upload_plans` migration has been applied
 - the share payload is valid
 
 ## Route deployment fails
@@ -43,3 +44,7 @@ npm run dev
 ```
 
 This repository uses `wrangler dev --remote` by default to reduce local/remote binding mismatches.
+
+## Older files do not appear in the registry
+
+The current registry view returns the latest 100 non-deleted files. If you operate larger archives, add pagination before relying on the UI for full-history management.

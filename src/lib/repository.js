@@ -66,7 +66,6 @@ export async function listFiles(env) {
       filename: row.filename,
       size: row.size,
       contentType: row.content_type,
-      storageKey: row.storage_key,
       tags: safeParseJson(row.tags_json, []),
       note: row.note || "",
       createdAt: row.created_at,

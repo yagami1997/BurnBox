@@ -30,7 +30,13 @@ export async function readSession(request, env) {
     return null;
   }
 
-  const [payloadEncoded, signature] = token.split(".");
+  const separatorIndex = token.indexOf(".");
+  if (separatorIndex <= 0 || separatorIndex !== token.lastIndexOf(".")) {
+    return null;
+  }
+
+  const payloadEncoded = token.slice(0, separatorIndex);
+  const signature = token.slice(separatorIndex + 1);
   if (!payloadEncoded || !signature) {
     return null;
   }

@@ -33,7 +33,17 @@ create table if not exists audit_logs (
   created_at text not null
 );
 
+create table if not exists upload_plans (
+  file_id text primary key,
+  storage_key text not null,
+  filename text not null,
+  content_type text not null,
+  created_at text not null,
+  completed_at text
+);
+
 create index if not exists idx_files_created_at on files(created_at desc);
 create index if not exists idx_shares_file_id on shares(file_id);
 create index if not exists idx_shares_token_hash on shares(token_hash);
 create index if not exists idx_audit_logs_created_at on audit_logs(created_at desc);
+create index if not exists idx_upload_plans_created_at on upload_plans(created_at desc);
