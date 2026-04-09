@@ -94,5 +94,9 @@ yarn-error.log*
 *.jpeg
 *.webp
 *.heic
+!docs/assets/*.png
+!docs/assets/*.jpg
+!docs/assets/*.jpeg
+!docs/assets/*.webp
 notes/
 scratch/

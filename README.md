@@ -85,7 +85,7 @@ Open-sourcing this project is not just distribution. It is a statement that oper
 
 ## Workspace Preview
 
-![BurnBox workspace overview](docs/assets/burnbox-workspace-overview.svg)
+![BurnBox workspace overview](docs/assets/burnbox-workspace-screenshot.png)
 
 ## Technical Philosophy
 
