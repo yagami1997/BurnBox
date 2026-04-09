@@ -1,0 +1,28 @@
+name = "burnbox"
+main = "src/worker.js"
+compatibility_date = "2026-04-09"
+
+# Route rules
+# Use an object route so Cloudflare knows which zone the pattern belongs to.
+routes = [
+  { pattern = "burnbox.example.com/*", zone_name = "example.com" }
+]
+
+d1_databases = [
+  { binding = "DB", database_name = "burnbox", database_id = "YOUR_D1_DATABASE_ID" }
+]
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "YOUR_BUCKET_NAME"
+
+[vars]
+CLOUDFLARE_ACCOUNT_ID = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+R2_BUCKET_NAME = "YOUR_BUCKET_NAME"
+
+# Configure secrets with Wrangler instead of committing them to the repository:
+#
+# npx wrangler secret put ADMIN_PASSWORD
+# npx wrangler secret put SESSION_SECRET
+# npx wrangler secret put R2_ACCESS_KEY_ID
+# npx wrangler secret put R2_SECRET_ACCESS_KEY
