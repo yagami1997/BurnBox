@@ -1,23 +1,33 @@
 # Troubleshooting
 
-*Last updated: April 9, 2026 at 12:49 AM PDT*
+*Last updated: April 9, 2026 at 5:42 AM PDT*
 
 ## Upload succeeds but the file does not appear
 
 Check:
 
-- D1 migration has been applied
+- all D1 migrations have been applied, including `0003_multipart_uploads.sql`
 - `complete-upload` succeeds
 - the Worker is running against the expected environment
+- the upload is not still in finalization
 
-## Direct upload fails
+## Upload reaches a high percentage and appears to stop
+
+BurnBox now separates chunk transfer from final object finalization. If the upload reaches the high-nineties and switches to a finalizing state, the transfer body is already done and the Worker is completing multipart assembly plus D1 writeback.
+
+## Chunked upload fails
 
 Check:
 
-- R2 CORS configuration
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- account id and bucket name
+- production secrets are correct
+- local `.dev.vars` exists when using `wrangler dev --remote`
+- the Worker route is current
+- the file is not being tested against an outdated cached frontend bundle
+- the upload plan and upload parts schema are present in D1
+
+## Migration reports duplicate column errors
+
+If `0003_multipart_uploads.sql` fails with a duplicate-column error, your D1 database may already contain the multipart fields. Inspect the table schema first instead of rerunning the same migration blindly.
 
 ## Share creation returns an error
 

@@ -30,8 +30,8 @@ export async function readSession(request, env) {
     return null;
   }
 
-  const separatorIndex = token.indexOf(".");
-  if (separatorIndex <= 0 || separatorIndex !== token.lastIndexOf(".")) {
+  const separatorIndex = token.lastIndexOf(".");
+  if (separatorIndex <= 0 || separatorIndex === token.length - 1) {
     return null;
   }
 

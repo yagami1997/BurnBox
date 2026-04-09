@@ -421,6 +421,71 @@ export function renderAppPage({ authenticated, files }) {
         gap: 16px;
       }
 
+      .upload-progress {
+        display: grid;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 250, 238, 0.62);
+        border: 1px solid rgba(124, 82, 25, 0.1);
+      }
+
+      .upload-progress.hidden {
+        display: none;
+      }
+
+      .upload-progress-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .upload-progress-label {
+        font-size: 0.92rem;
+        color: rgba(39, 53, 71, 0.86);
+      }
+
+      .upload-progress-value {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--navy);
+      }
+
+      .upload-progress-track {
+        position: relative;
+        overflow: hidden;
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(20, 50, 82, 0.12);
+      }
+
+      .upload-progress-bar {
+        width: 0%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #d7921f 0%, #e0af49 38%, #2e9b7f 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+        transition: width 180ms ease;
+      }
+
+      .upload-progress.is-finalizing .upload-progress-bar {
+        width: 100% !important;
+        background: linear-gradient(90deg, #d7921f 0%, #e0af49 28%, #2e9b7f 58%, #d7921f 100%);
+        background-size: 220% 100%;
+        animation: finalizing-wave 1.15s linear infinite;
+      }
+
+      @keyframes finalizing-wave {
+        0% { background-position: 200% 0; }
+        100% { background-position: -20% 0; }
+      }
+
+      .upload-progress-sub {
+        font-size: 0.84rem;
+        color: var(--muted);
+      }
+
       .upload-inline-fields {
         display: grid;
         grid-template-columns: minmax(0, 1.2fr) minmax(180px, 0.7fr) minmax(180px, 0.7fr) auto;
@@ -793,12 +858,12 @@ export function renderAppPage({ authenticated, files }) {
                 <div class="upload-strip-grid">
                   <div class="upload-strip-head">
                     <h2>Upload Desk</h2>
-                    <p>Direct browser upload into your bucket, followed by metadata writeback into D1. The desk stays on top so the registry below can breathe.</p>
+                    <p>Files move through a 5 MiB multipart transfer lane. BurnBox assembles the object in R2, then writes the final registry record into D1.</p>
                   </div>
                   <div class="upload-strip-meta">
                     <div class="stats">
                       <div><span>Storage</span><strong>R2 archive</strong></div>
-                      <div><span>Session</span><strong>Signed admin cookie</strong></div>
+                      <div><span>Upload mode</span><strong>5 MiB multipart slices</strong></div>
                       <div><span>Delete mode</span><strong>Remove file and revoke shares</strong></div>
                     </div>
                   </div>
@@ -818,6 +883,16 @@ export function renderAppPage({ authenticated, files }) {
                       <input id="noteInput" name="note" type="text" placeholder="Optional note" />
                     </div>
                     <button class="primary" type="submit">Upload To R2</button>
+                  </div>
+                  <div class="upload-progress hidden" id="uploadProgress">
+                    <div class="upload-progress-head">
+                      <div class="upload-progress-label" id="uploadProgressLabel">Upload progress</div>
+                      <div class="upload-progress-value" id="uploadProgressValue">0%</div>
+                    </div>
+                    <div class="upload-progress-track" aria-hidden="true">
+                      <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                    </div>
+                    <div class="upload-progress-sub" id="uploadProgressSub">Waiting for a file.</div>
                   </div>
                 </form>
               </section>
@@ -943,6 +1018,11 @@ export function renderAppPage({ authenticated, files }) {
       const shareTargetName = document.getElementById("shareTargetName");
       const limitDownloadsToggle = document.getElementById("limitDownloadsToggle");
       const shareDownloadsField = document.getElementById("shareDownloadsField");
+      const uploadProgress = document.getElementById("uploadProgress");
+      const uploadProgressBar = document.getElementById("uploadProgressBar");
+      const uploadProgressLabel = document.getElementById("uploadProgressLabel");
+      const uploadProgressValue = document.getElementById("uploadProgressValue");
+      const uploadProgressSub = document.getElementById("uploadProgressSub");
 
       function readStoredShareLinks() {
         try {
@@ -1016,6 +1096,33 @@ export function renderAppPage({ authenticated, files }) {
         if (!isError && message !== "Workspace ready.") {
           scheduleReadyStatus();
         }
+      }
+
+      function setUploadProgress(progress, label, detail, mode = "uploading") {
+        if (!uploadProgress || !uploadProgressBar || !uploadProgressLabel || !uploadProgressValue || !uploadProgressSub) {
+          return;
+        }
+
+        const clamped = Math.max(0, Math.min(100, Number(progress || 0)));
+        uploadProgress.classList.remove("hidden");
+        uploadProgress.classList.toggle("is-finalizing", mode === "finalizing");
+        uploadProgressBar.style.width = \`\${clamped}%\`;
+        uploadProgressLabel.textContent = label || "Upload progress";
+        uploadProgressValue.textContent = mode === "finalizing" ? "Finalizing" : \`\${Math.round(clamped)}%\`;
+        uploadProgressSub.textContent = detail || "Uploading.";
+      }
+
+      function clearUploadProgress() {
+        if (!uploadProgress || !uploadProgressBar || !uploadProgressLabel || !uploadProgressValue || !uploadProgressSub) {
+          return;
+        }
+
+        uploadProgress.classList.add("hidden");
+        uploadProgress.classList.remove("is-finalizing");
+        uploadProgressBar.style.width = "0%";
+        uploadProgressLabel.textContent = "Upload progress";
+        uploadProgressValue.textContent = "0%";
+        uploadProgressSub.textContent = "Waiting for a file.";
       }
 
       function formatBytes(value) {
@@ -1219,6 +1326,54 @@ export function renderAppPage({ authenticated, files }) {
         setStatus("Share link copied.", false, "The generated URL is now in your clipboard.");
       }
 
+      async function uploadFileInChunks(file, initData) {
+        const chunkSize = Number(initData.chunkSize) || 5 * 1024 * 1024;
+        const totalParts = Number(initData.totalParts) || Math.max(1, Math.ceil(file.size / chunkSize));
+        let uploadedBytes = 0;
+
+        setUploadProgress(0, "Preparing multipart upload", \`0 of \${totalParts} parts uploaded.\`);
+
+        for (let partNumber = 1; partNumber <= totalParts; partNumber += 1) {
+          const start = (partNumber - 1) * chunkSize;
+          const end = Math.min(start + chunkSize, file.size);
+          const chunk = file.slice(start, end);
+          const baseProgress = file.size > 0 ? (uploadedBytes / file.size) * 95 : 0;
+
+          setStatus(
+            \`Uploading part \${partNumber}/\${totalParts}...\`,
+            false,
+            \`Transferring \${Math.ceil(chunk.size / 1024 / 1024)} MiB chunk through the Worker upload channel.\`,
+          );
+          setUploadProgress(
+            baseProgress,
+            \`Uploading part \${partNumber} of \${totalParts}\`,
+            \`\${partNumber - 1} of \${totalParts} parts uploaded.\`,
+          );
+
+          const response = await fetch(\`/api/files/\${initData.fileId}/upload-part?partNumber=\${partNumber}\`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/octet-stream",
+            },
+            body: chunk,
+          });
+
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.error || \`Failed to upload part \${partNumber}.\`);
+          }
+
+          uploadedBytes += chunk.size;
+          const uploadedParts = partNumber;
+          const progress = file.size > 0 ? (uploadedBytes / file.size) * 95 : (uploadedParts / totalParts) * 95;
+          setUploadProgress(
+            progress,
+            \`Uploading part \${uploadedParts} of \${totalParts}\`,
+            \`\${uploadedParts} of \${totalParts} parts uploaded.\`,
+          );
+        }
+      }
+
       if (boot.authenticated) {
         renderFiles(currentFiles);
         setStatus("Workspace ready.", false, \`\${currentFiles.length} file(s) currently in the registry.\`);
@@ -1284,6 +1439,7 @@ export function renderAppPage({ authenticated, files }) {
 
           const tags = document.getElementById("tagsInput")?.value || "";
           const note = document.getElementById("noteInput")?.value || "";
+          clearUploadProgress();
 
           setStatus("Preparing upload...", false, "Creating a signed direct-upload plan.");
           const initResponse = await fetch("/api/files/init-upload", {
@@ -1302,44 +1458,52 @@ export function renderAppPage({ authenticated, files }) {
             return;
           }
 
-          setStatus("Uploading to R2...", false, "Sending the file directly from the browser to your bucket.");
-          const uploadResponse = await fetch(initData.uploadUrl, {
-            method: "PUT",
-            headers: initData.headers || {},
-            body: file
-          });
-
-          if (!uploadResponse.ok) {
-            setStatus("Failed to upload file to R2.", true, "Check CORS and signed request configuration.");
+          try {
+            await uploadFileInChunks(file, initData);
+          } catch (error) {
+            clearUploadProgress();
+            setStatus(String(error?.message || "Failed to upload file chunks."), true);
             return;
           }
 
-          setStatus("Writing file record...", false, "Confirming the object and saving metadata into D1.");
-          const completeResponse = await fetch("/api/files/complete-upload", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              fileId: initData.fileId,
-              tags,
-              note
-            })
-          });
+          let completeData;
+          try {
+            setStatus("Finalizing upload...", false, "Completing multipart assembly and writing metadata into D1.");
+            setUploadProgress(95, "Upload finished", "All parts are uploaded. Finalizing in R2 and writing the D1 file record.", "finalizing");
+            const completeResponse = await fetch("/api/files/complete-upload", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                fileId: initData.fileId,
+                tags,
+                note
+              })
+            });
 
-          const completeData = await completeResponse.json().catch(() => ({}));
-          if (!completeResponse.ok) {
-            setStatus(completeData.error || "Failed to save file record.", true);
+            completeData = await completeResponse.json().catch(() => ({}));
+            if (!completeResponse.ok) {
+              throw new Error(completeData.error || "Failed to save file record.");
+            }
+          } catch (error) {
+            clearUploadProgress();
+            setStatus(String(error?.message || "Failed to save file record."), true);
             return;
           }
 
           if (completeData.file) {
             currentFiles = [completeData.file, ...currentFiles.filter((item) => item.id !== completeData.file.id)];
+            syncStoredShareLinks(currentFiles);
             renderFiles(currentFiles);
           } else {
             await refreshFiles();
           }
 
           event.currentTarget.reset();
+          setUploadProgress(100, "Upload complete", \`\${file.name} is now stored in your archive.\`);
           setStatus("Upload complete.", false, \`\${file.name} is now stored in your archive.\`);
+          setTimeout(() => {
+            clearUploadProgress();
+          }, 1800);
         });
       } else {
         document.getElementById("loginForm")?.addEventListener("submit", async (event) => {

@@ -1,23 +1,33 @@
 # トラブルシューティング
 
-*最終更新: April 9, 2026 at 12:49 AM PDT*
+*最終更新: April 9, 2026 at 5:42 AM PDT*
 
 ## アップロード後にファイルが表示されない
 
 確認してください。
 
-- D1 migration が適用されているか
+- `0003_multipart_uploads.sql` を含む D1 migration が適用されているか
 - `complete-upload` が成功しているか
 - Worker が期待した環境に接続しているか
+- まだ finalization 中ではないか
 
-## 直接アップロードに失敗する
+## 高い進捗率で止まって見える
+
+BurnBox は chunk transfer と finalization を分離して扱います。高い進捗率の後に finalizing 表示へ切り替わる場合、ファイル本体の転送は終わっており、Worker が R2 multipart 組み立てと D1 書き込みを実行しています。
+
+## Chunked upload に失敗する
 
 確認してください。
 
-- R2 CORS 設定
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- account id と bucket 名
+- production secrets が正しいか
+- `wrangler dev --remote` を使う場合、ローカルに `.dev.vars` があるか
+- Worker route が最新か
+- 古いキャッシュ済みフロントエンドを見ていないか
+- D1 に upload plan と upload part 用スキーマがあるか
+
+## migration で duplicate column エラーが出る
+
+`0003_multipart_uploads.sql` 実行時に duplicate column エラーが出る場合、D1 にはすでに multipart 用の列がある可能性があります。同じ migration を繰り返し実行する前に、現在のテーブル構造を確認してください。
 
 ## 共有リンク作成でエラーになる
 

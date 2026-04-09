@@ -1,6 +1,6 @@
 # Deployment
 
-*Last updated: April 9, 2026 at 12:49 AM PDT*
+*Last updated: April 9, 2026 at 5:42 AM PDT*
 
 ## Cloudflare resources
 
@@ -43,7 +43,10 @@ Apply the schema before the first deployment:
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0003_multipart_uploads.sql
 ```
+
+If `0003_multipart_uploads.sql` reports a duplicate-column error on an existing database, the multipart schema may already be applied. Check the current table structure before rerunning ad hoc migration edits.
 
 ## Deploy
 
@@ -54,16 +57,13 @@ npm run deploy
 ## Post-deploy checks
 
 - log in successfully
-- upload a file successfully
+- upload several files in sequence
+- verify that chunked upload progresses and finalizes
 - verify file list rendering
 - create a temporary share
 - copy and open the share link
 - revoke the share and verify it fails
 
-## R2 CORS
+## R2 notes
 
-Because uploads are sent from the browser directly to R2, your bucket CORS policy must allow:
-
-- method: `PUT`
-- your admin origin
-- header: `Content-Type`
+BurnBox now uses Worker-mediated chunk transport and R2 multipart assembly. The detailed rationale is documented in [Concurrent Chunked Upload Design](concurrent-chunked-upload.md).

@@ -1,5 +1,5 @@
 import { recordAuditLog } from "./lib/audit.js";
-import { completeUpload, createUploadPlan, deleteFile } from "./lib/files.js";
+import { completeUpload, createUploadPlan, deleteFile, uploadFilePart } from "./lib/files.js";
 import { html, json, noContent, readJson, timingSafeEqual } from "./lib/http.js";
 import { renderAppPage } from "./lib/layout.js";
 import { listFiles } from "./lib/repository.js";
@@ -94,6 +94,9 @@ async function route(request, env) {
       if (String(error?.message || "").includes("upload_plans migration")) {
         return json({ error: error.message }, { status: 500 });
       }
+      if (String(error?.message || "").includes("multipart upload migration")) {
+        return json({ error: error.message }, { status: 500 });
+      }
       throw error;
     }
 
@@ -109,6 +112,53 @@ async function route(request, env) {
     });
 
     return json(uploadPlan);
+  }
+
+  if (request.method === "POST" && url.pathname.startsWith("/api/files/") && url.pathname.endsWith("/upload-part")) {
+    if (!session) {
+      return json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const fileId = url.pathname.replace("/api/files/", "").replace("/upload-part", "").replace(/\/$/, "");
+    const partNumber = Number(url.searchParams.get("partNumber"));
+
+    if (!fileId) {
+      return json({ error: "File id is required" }, { status: 400 });
+    }
+    if (!Number.isInteger(partNumber) || partNumber <= 0) {
+      return json({ error: "partNumber must be a positive integer" }, { status: 400 });
+    }
+
+    const chunkBody = await request.arrayBuffer();
+    if (!chunkBody.byteLength) {
+      return json({ error: "Chunk body is required" }, { status: 400 });
+    }
+    if (chunkBody.byteLength > 6 * 1024 * 1024) {
+      return json({ error: "Chunk exceeds maximum allowed size" }, { status: 413 });
+    }
+
+    let uploadedPart;
+    try {
+      uploadedPart = await uploadFilePart(env, {
+        fileId,
+        partNumber,
+        body: chunkBody,
+      });
+    } catch (error) {
+      const message = String(error?.message || "");
+      if (message === "Upload plan was not found or has already been completed") {
+        return json({ error: message }, { status: 409 });
+      }
+      if (message.includes("multipart upload migration")) {
+        return json({ error: message }, { status: 500 });
+      }
+      if (message.includes("partNumber must be")) {
+        return json({ error: message }, { status: 400 });
+      }
+      throw error;
+    }
+
+    return json(uploadedPart, { status: 201 });
   }
 
   if (request.method === "POST" && url.pathname === "/api/files/complete-upload") {
@@ -133,7 +183,13 @@ async function route(request, env) {
       if (message === "Upload plan was not found or has already been completed") {
         return json({ error: message }, { status: 409 });
       }
+      if (message === "Upload is incomplete") {
+        return json({ error: message }, { status: 409 });
+      }
       if (message.includes("upload_plans migration")) {
+        return json({ error: message }, { status: 500 });
+      }
+      if (message.includes("multipart upload migration")) {
         return json({ error: message }, { status: 500 });
       }
       throw error;
@@ -294,6 +350,7 @@ function renderShareError(status) {
     expired: { title: "Share expired", description: "This temporary link has expired." },
     depleted: { title: "Download limit reached", description: "This link has no remaining downloads." },
     missing_object: { title: "File unavailable", description: "The storage backend is missing the object for this share." },
+    unavailable: { title: "Share unavailable", description: "This share cannot be used right now. Please try again." },
   }[status] || { title: "Unavailable", description: "This share cannot be used right now." };
 
   return html(
@@ -364,7 +421,7 @@ function renderShareError(status) {
           </article>
         </body>
       </html>`,
-    { status: status === "missing" ? 404 : status === "missing_object" ? 503 : 410 },
+    { status: status === "missing" ? 404 : status === "missing_object" || status === "unavailable" ? 503 : 410 },
   );
 }
 

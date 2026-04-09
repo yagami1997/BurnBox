@@ -1,6 +1,6 @@
 # デプロイ手順
 
-*最終更新: April 9, 2026 at 12:49 AM PDT*
+*最終更新: April 9, 2026 at 5:42 AM PDT*
 
 ## Cloudflare リソース
 
@@ -43,7 +43,10 @@ BurnBox には以下が必要です。
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0003_multipart_uploads.sql
 ```
+
+既存 DB に対して `0003_multipart_uploads.sql` を再実行して duplicate column エラーが出る場合、multipart 用スキーマはすでに適用済みの可能性があります。まず現在のテーブル構造を確認してください。
 
 ## デプロイ
 
@@ -54,16 +57,13 @@ npm run deploy
 ## デプロイ後の確認
 
 - ログインできる
-- ファイルをアップロードできる
+- ファイルを連続してアップロードできる
+- チャンク進捗と finalization が見える
 - ファイル一覧が表示される
 - 一時共有リンクを作成できる
 - 共有リンクからダウンロードできる
 - revoke 後にリンクが無効になる
 
-## R2 CORS
+## R2 補足
 
-ブラウザから R2 に直接アップロードするため、バケットの CORS では次を許可する必要があります。
-
-- method: `PUT`
-- 管理画面の origin
-- header: `Content-Type`
+BurnBox は現在、Worker 経由のチャンク転送と R2 multipart 組み立てを採用しています。背景は [並行チャンク分割アップロード設計](concurrent-chunked-upload.md) を参照してください。

@@ -62,7 +62,7 @@ export async function revokeShare(env, shareId) {
 
 export async function resolveShareForDownload(env, token) {
   const tokenHash = await hashToken(token);
-  const share = await env.DB.prepare(
+  let share = await env.DB.prepare(
     `select
         s.id,
         s.file_id,
@@ -105,7 +105,40 @@ export async function resolveShareForDownload(env, token) {
     .run();
 
   if (update.meta.changes === 0) {
-    return { status: "depleted" };
+    share = await env.DB.prepare(
+      `select
+          s.id,
+          s.file_id,
+          s.expires_at,
+          s.max_downloads,
+          s.download_count,
+          s.revoked_at,
+          f.filename,
+          f.storage_key,
+          f.content_type
+        from shares s
+        join files f on f.id = s.file_id
+        where s.id = ?
+          and f.deleted_at is null
+        limit 1`,
+    )
+      .bind(share.id)
+      .first();
+
+    if (!share) {
+      return { status: "missing" };
+    }
+    if (share.revoked_at) {
+      return { status: "revoked" };
+    }
+    if (Date.parse(share.expires_at) <= now) {
+      return { status: "expired" };
+    }
+    if (share.max_downloads !== null && share.download_count >= share.max_downloads) {
+      return { status: "depleted" };
+    }
+
+    return { status: "unavailable" };
   }
 
   const object = await env.R2_BUCKET.get(share.storage_key);
