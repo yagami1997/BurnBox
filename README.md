@@ -6,8 +6,6 @@
 
 `Cloudflare Workers` · `R2` · `D1` · `Server-rendered HTML/CSS/JS` · `GPL-3.0`
 
-*Last updated: April 9, 2026 at 5:42 AM PDT*
-
 <p>
   <img src="https://img.shields.io/badge/Runtime-Cloudflare%20Workers-1f6feb?style=flat-square&labelColor=4b4f56" alt="Cloudflare Workers" />
   <img src="https://img.shields.io/badge/Storage-R2-1d436b?style=flat-square&labelColor=4b4f56" alt="R2" />
@@ -75,23 +73,19 @@ Open-sourcing this project is not just distribution. It is a statement that oper
 
 ## Changelog
 
-### April 9, 2026 · Chunked multipart upload refactor
+### April 9, 2026 · Major Refactor and Chunked Upload Rollout · 5:42 AM PDT
 
+- rebuilt BurnBox around a single Cloudflare Worker, R2, and D1 architecture
+- replaced the legacy public-upload flow with a private admin workspace
+- introduced signed admin sessions and hashed share-token storage
+- redesigned the interface, share controls, and documentation structure for public release
+- separated local-only material from the future open-source repository layout
 - moved the upload path from optimistic single-request transfer to a chunked multipart model
 - adopted 5 MiB chunk slicing for stability-first transfer behavior
 - introduced Worker-mediated upload-part handling and R2 multipart assembly
 - added D1-backed upload plans and uploaded-part tracking
 - added truthful transfer progress with an explicit finalization phase
 - established the upload subsystem as the primary technical focus of BurnBox 2.0.0
-
-### April 9, 2026 · Major refactor
-
-- rebuilt BurnBox around a single Cloudflare Worker, R2, and D1 architecture
-- replaced the legacy public-upload flow with a private admin workspace
-- introduced signed admin sessions and hashed share-token storage
-- shipped direct browser-to-R2 upload with metadata writeback into D1
-- redesigned the interface, share controls, and documentation structure for public release
-- separated local-only material from the future open-source repository layout
 
 ## Workspace Preview
 
@@ -262,7 +256,11 @@ This project is released under the terms of the [GPL v3](LICENSE).
 
 <div align="center">
 
+**A small system should remain legible, auditable, and under operator control.**
+
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
+
+<sub>Last updated: April 9, 2026 at 5:42 AM PDT</sub>
 
 </div>
