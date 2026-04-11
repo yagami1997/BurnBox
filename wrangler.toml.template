@@ -19,8 +19,6 @@ binding = "R2_BUCKET"
 bucket_name = "YOUR_BUCKET_NAME"
 
 [vars]
-CLOUDFLARE_ACCOUNT_ID = "YOUR_CLOUDFLARE_ACCOUNT_ID"
-R2_BUCKET_NAME = "YOUR_BUCKET_NAME"
 APP_BASE_URL = "https://burnbox.example.com"
 SHARE_BASE_URL = "https://share.example.net"
 SHARE_SUBDOMAIN_BASE_DOMAIN = "share.example.net"
@@ -32,5 +30,3 @@ ALLOWED_SHARE_HOSTS = "share.example.net"
 # npx wrangler secret put ADMIN_PASSWORD
 # npx wrangler secret put SESSION_SECRET
 # npx wrangler secret put SHARE_LINK_SECRET
-# npx wrangler secret put R2_ACCESS_KEY_ID
-# npx wrangler secret put R2_SECRET_ACCESS_KEY
