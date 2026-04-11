@@ -42,8 +42,12 @@ async function route(request, env) {
   const isAppSurfacePath = request.method === "GET" && url.pathname === "/";
   const session = await readSession(request, env);
 
-  if ((isKnownShareHost || isShareSubdomainHost) && (isApiPath || (isAppSurfacePath && !isShareSubdomainHost))) {
+  if ((isKnownShareHost || isShareSubdomainHost) && isApiPath) {
     return notFoundForRequest(request);
+  }
+
+  if (isKnownShareHost && isAppSurfacePath && !isShareSubdomainHost) {
+    return renderShareError("unavailable");
   }
 
   if (request.method === "GET" && url.pathname === "/") {
