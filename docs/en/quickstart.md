@@ -1,6 +1,6 @@
 # Quickstart
 
-*Last updated: April 10, 2026 at 7:14 PM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 ## Requirements
 
@@ -85,7 +85,7 @@ npm run dev
 
 ## 7. Verify the system
 
-Check the main 2.1.0 flow:
+Check the main 2.1.1 flow:
 
 - log in to the workspace
 - upload a test file

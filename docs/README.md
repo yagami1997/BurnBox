@@ -1,10 +1,12 @@
 # Documentation
 
-*Last updated: April 10, 2026 at 7:14 PM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 This directory contains the public operator and engineering documentation for BurnBox.
 
 All public examples use placeholder domains only. Do not replace them with personal production values in tracked documentation.
+
+The most important engineering theme across these documents is that BurnBox treats large-file upload as a cumulative reliability problem across browser, Worker, R2, and D1 boundaries rather than as a simple request-size problem.
 
 ## English
 

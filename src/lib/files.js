@@ -1,5 +1,3 @@
-import { AwsClient } from "aws4fetch";
-
 const CHUNK_SIZE = 5 * 1024 * 1024;
 const MULTIPART_MIGRATION_ERROR = "The multipart upload migration has not been applied";
 
@@ -80,7 +78,7 @@ export async function uploadFilePart(env, input) {
   });
 
   const updatedAt = new Date().toISOString();
-  await env.DB.batch([
+  const statements = [
     env.DB.prepare(
       `insert into upload_parts (file_id, part_number, etag, size, created_at)
        values (?, ?, ?, ?, ?)
@@ -90,9 +88,16 @@ export async function uploadFilePart(env, input) {
          created_at = excluded.created_at`,
     )
       .bind(input.fileId, input.partNumber, etag, input.body.byteLength, updatedAt),
-    env.DB.prepare(`update upload_plans set status = ?, updated_at = ? where file_id = ?`)
-      .bind("uploading", updatedAt, input.fileId),
-  ]);
+  ];
+
+  if (input.partNumber === 1) {
+    statements.push(
+      env.DB.prepare(`update upload_plans set status = ?, updated_at = ? where file_id = ?`)
+        .bind("uploading", updatedAt, input.fileId),
+    );
+  }
+
+  await env.DB.batch(statements);
 
   return {
     partNumber: input.partNumber,
@@ -135,8 +140,9 @@ export async function completeUpload(env, input) {
     .run();
 
   try {
+    let completedObject;
     try {
-      await completeMultipartUpload(env, {
+      completedObject = await completeMultipartUpload(env, {
         storageKey: uploadPlan.storage_key,
         multipartUploadId: uploadPlan.multipart_upload_id,
         parts,
@@ -146,15 +152,10 @@ export async function completeUpload(env, input) {
       throw error;
     }
 
-    const object = await waitForObject(env, uploadPlan.storage_key);
-    if (!object) {
-      throw new Error("Uploaded object was not found in R2");
-    }
-
     const completedAt = new Date().toISOString();
     const tags = normalizeTags(input.tags);
-    const objectSize = Number(object.size || uploadPlan.declared_size || 0);
-    const contentType = object.httpMetadata?.contentType || uploadPlan.content_type || "application/octet-stream";
+    const objectSize = Number(completedObject?.size || uploadPlan.declared_size || 0);
+    const contentType = completedObject?.httpMetadata?.contentType || uploadPlan.content_type || "application/octet-stream";
     const note = normalizeNote(input.note);
 
     await env.DB.batch([
@@ -261,20 +262,6 @@ async function getUploadPlan(env, fileId) {
   }
 }
 
-async function waitForObject(env, storageKey) {
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const object = await env.R2_BUCKET.head(storageKey);
-    if (object) {
-      return object;
-    }
-
-    const delayMs = Math.min(400 * (attempt + 1), 2000);
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-
-  return null;
-}
-
 function buildStorageKey(now, fileId, filename) {
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
@@ -289,123 +276,40 @@ function buildStorageKey(now, fileId, filename) {
 }
 
 async function createMultipartUpload(env, storageKey, contentType) {
-  const client = createR2AwsClient(env);
-  const url = createObjectUrl(env, storageKey);
-  url.searchParams.set("uploads", "");
-
-  const response = await client.fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": contentType || "application/octet-stream",
+  const upload = await env.R2_BUCKET.createMultipartUpload(storageKey, {
+    httpMetadata: {
+      contentType: contentType || "application/octet-stream",
     },
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to initialize multipart upload (${response.status})`);
-  }
-
-  const xml = await response.text();
-  const uploadId = extractXmlValue(xml, "UploadId");
-  if (!uploadId) {
+  if (!upload?.uploadId) {
     throw new Error("Multipart upload id was not returned by R2");
   }
 
-  return uploadId;
+  return upload.uploadId;
 }
 
 async function uploadMultipartPart(env, input) {
-  const client = createR2AwsClient(env);
-  const url = createObjectUrl(env, input.storageKey);
-  url.searchParams.set("partNumber", String(input.partNumber));
-  url.searchParams.set("uploadId", input.multipartUploadId);
-
-  const response = await client.fetch(url, {
-    method: "PUT",
-    headers: {
-      "Content-Type": input.contentType || "application/octet-stream",
-    },
-    body: input.body,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to upload part ${input.partNumber} (${response.status})`);
-  }
-
-  const etag = response.headers.get("etag");
+  const upload = env.R2_BUCKET.resumeMultipartUpload(input.storageKey, input.multipartUploadId);
+  const uploadedPart = await upload.uploadPart(input.partNumber, input.body);
+  const etag = uploadedPart?.etag;
   if (!etag) {
     throw new Error(`R2 did not return an ETag for part ${input.partNumber}`);
   }
-
   return etag;
 }
 
 async function completeMultipartUpload(env, input) {
-  const client = createR2AwsClient(env);
-  const url = createObjectUrl(env, input.storageKey);
-  url.searchParams.set("uploadId", input.multipartUploadId);
-
-  const body = `<?xml version="1.0" encoding="UTF-8"?>
-<CompleteMultipartUpload>${input.parts
-    .map(
-      (part) => `<Part><PartNumber>${part.partNumber}</PartNumber><ETag>${escapeXml(part.etag)}</ETag></Part>`,
-    )
-    .join("")}</CompleteMultipartUpload>`;
-
-  const response = await client.fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/xml",
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to complete multipart upload (${response.status})`);
-  }
+  const upload = env.R2_BUCKET.resumeMultipartUpload(input.storageKey, input.multipartUploadId);
+  return upload.complete(input.parts);
 }
 
 async function safeAbortMultipartUpload(env, storageKey, multipartUploadId) {
   try {
-    const client = createR2AwsClient(env);
-    const url = createObjectUrl(env, storageKey);
-    url.searchParams.set("uploadId", multipartUploadId);
-    await client.fetch(url, { method: "DELETE" });
+    const upload = env.R2_BUCKET.resumeMultipartUpload(storageKey, multipartUploadId);
+    await upload.abort();
   } catch {
     // Ignore abort failures while cleaning up failed initialization.
   }
-}
-
-function createR2AwsClient(env) {
-  if (!env.CLOUDFLARE_ACCOUNT_ID || !env.R2_BUCKET_NAME || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY) {
-    throw new Error("R2 signing configuration is incomplete");
-  }
-
-  return new AwsClient({
-    accessKeyId: env.R2_ACCESS_KEY_ID,
-    secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-    service: "s3",
-    region: "auto",
-  });
-}
-
-function createObjectUrl(env, storageKey) {
-  return new URL(
-    `https://${env.R2_BUCKET_NAME}.${env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com/${storageKey}`,
-  );
-}
-
-function extractXmlValue(xml, tagName) {
-  const match = xml.match(new RegExp(`<${tagName}>([^<]+)</${tagName}>`));
-  return match?.[1] || null;
-}
-
-function escapeXml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
 }
 
 function hasContiguousParts(parts, expectedParts) {

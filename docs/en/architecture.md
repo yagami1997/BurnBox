@@ -1,6 +1,6 @@
 # Architecture
 
-*Last updated: April 10, 2026 at 7:14 PM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 ## Overview
 
@@ -10,10 +10,14 @@ BurnBox is a compact Cloudflare-native control plane:
 - R2 stores file objects
 - D1 stores file metadata, upload state, share state, and audit logs
 
-BurnBox 2.1.0 has two major architectural layers:
+BurnBox 2.1.1 has two major architectural layers:
 
 - upload reliability through chunked multipart ingest
 - share-delivery separation through split domains and stable public handles
+
+One practical warning belongs at the architectural level:
+
+large-file behavior in BurnBox should be reasoned about as cumulative reliability, not as a single-request size problem.
 
 ## Core architectural shifts
 
@@ -25,7 +29,7 @@ Detailed rationale:
 
 - [Concurrent Chunked Upload Design](concurrent-chunked-upload.md)
 
-### 2.1.0: share-delivery redesign
+### 2.1.1: reliability hardening on top of the share-delivery redesign
 
 The second major shift was redesigning the share system so that:
 
@@ -46,6 +50,8 @@ Detailed rationale:
 5. The Worker assembles the final object in R2 using multipart upload.
 6. The workspace calls `POST /api/files/complete-upload`.
 7. The Worker finalizes object assembly and writes the final file record to D1.
+
+This flow is intentionally stateful. The difficulty is not only moving bytes into R2. The difficulty is preserving correct system state across many part requests, retries, and a final commit boundary.
 
 ## Share flow
 

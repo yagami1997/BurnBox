@@ -1,6 +1,6 @@
 # アーキテクチャ
 
-*最終更新: April 10, 2026 at 7:14 PM PDT*
+*最終更新: April 11, 2026 at 12:18 PM PDT*
 
 ## 概要
 
@@ -10,10 +10,14 @@ BurnBox は Cloudflare ネイティブな薄い制御面です。
 - R2: ファイル本体の保存
 - D1: ファイルメタデータ、アップロード状態、共有状態、監査ログ
 
-BurnBox 2.1.0 には 2 つの主要層があります。
+BurnBox 2.1.1 には 2 つの主要層があります。
 
 - chunked multipart ingest による upload reliability
 - split domains と stable public handle による share delivery separation
+
+ここで 1 つ、構造レベルで明示すべき注意があります。
+
+BurnBox における大容量 upload は、単一 request のサイズ問題ではなく、累積信頼性の問題として扱うべきです。
 
 ## 中核の構造変更
 
@@ -25,7 +29,7 @@ BurnBox 2.1.0 には 2 つの主要層があります。
 
 - [並行チャンク分割アップロード設計](concurrent-chunked-upload.md)
 
-### 2.1.0: share delivery redesign
+### 2.1.1: share delivery redesign の上に reliability hardening を重ねる段階
 
 次の大きな構造変更は share system の再設計です。目的は:
 
@@ -46,6 +50,8 @@ BurnBox 2.1.0 には 2 つの主要層があります。
 5. Worker が R2 multipart を使って final object を組み立てる
 6. 管理画面が `POST /api/files/complete-upload` を呼ぶ
 7. Worker が object assembly を確定し、D1 に final file record を書く
+
+この flow は意図的に stateful です。難しさは単に R2 へ byte を送ることではありません。多数の part request、retry、最終 commit 境界をまたいで、正しい system state を保つことにあります。
 
 ## Share flow
 

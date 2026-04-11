@@ -1,10 +1,10 @@
 # Deployment
 
-*Last updated: April 10, 2026 at 7:14 PM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 ## Overview
 
-BurnBox 2.1.0 is designed around a split-domain deployment model:
+BurnBox 2.1.1 is designed around a split-domain deployment model:
 
 - a private workspace domain for authenticated administration, such as `https://console.example.com`
 - a public share domain for external file delivery, such as `https://relay.example.net`

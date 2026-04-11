@@ -1355,18 +1355,13 @@ export function renderAppPage({ authenticated, files }) {
             \`\${partNumber - 1} of \${totalParts} parts uploaded.\`,
           );
 
-          const response = await fetch(\`/api/files/\${initData.fileId}/upload-part?partNumber=\${partNumber}\`, {
-            method: "POST",
-            headers: {
-              "content-type": "application/octet-stream",
-            },
-            body: chunk,
+          await uploadPartWithRetry({
+            fileId: initData.fileId,
+            partNumber,
+            totalParts,
+            chunk,
+            progress: baseProgress,
           });
-
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            throw new Error(data.error || \`Failed to upload part \${partNumber}.\`);
-          }
 
           uploadedBytes += chunk.size;
           const uploadedParts = partNumber;
@@ -1377,6 +1372,62 @@ export function renderAppPage({ authenticated, files }) {
             \`\${uploadedParts} of \${totalParts} parts uploaded.\`,
           );
         }
+      }
+
+      async function uploadPartWithRetry(input) {
+        const maxAttempts = 4;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+          if (attempt > 1) {
+            setStatus(
+              \`Retrying part \${input.partNumber}/\${input.totalParts}...\`,
+              false,
+              \`Attempt \${attempt} of \${maxAttempts} after a transient upload failure.\`,
+            );
+            setUploadProgress(
+              input.progress,
+              \`Retrying part \${input.partNumber} of \${input.totalParts}\`,
+              \`Recovering from a transient failure on attempt \${attempt} of \${maxAttempts}.\`,
+            );
+          }
+
+          let response;
+          try {
+            response = await fetch(\`/api/files/\${input.fileId}/upload-part?partNumber=\${input.partNumber}\`, {
+              method: "POST",
+              headers: {
+                "content-type": "application/octet-stream",
+              },
+              body: input.chunk,
+            });
+          } catch (error) {
+            if (attempt >= maxAttempts) {
+              throw new Error(\`Part \${input.partNumber} failed after \${attempt} attempts: \${String(error?.message || error)}\`);
+            }
+            await waitForRetry(attempt);
+            continue;
+          }
+
+          const data = await response.json().catch(() => ({}));
+          if (response.ok) {
+            return data;
+          }
+
+          if (attempt >= maxAttempts || !isRetryablePartStatus(response.status)) {
+            throw new Error(data.error || \`Failed to upload part \${input.partNumber}.\`);
+          }
+
+          await waitForRetry(attempt);
+        }
+      }
+
+      function isRetryablePartStatus(status) {
+        return status === 408 || status === 425 || status === 429 || status >= 500;
+      }
+
+      async function waitForRetry(attempt) {
+        const delayMs = Math.min(400 * 2 ** (attempt - 1), 2500);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
 
       if (boot.authenticated) {

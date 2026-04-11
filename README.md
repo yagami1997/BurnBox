@@ -26,12 +26,16 @@
 - [Changelog](#changelog)
 - [Workspace Preview](#workspace-preview)
 - [Technical Philosophy](#technical-philosophy)
+- [Engineering Difficulty](#engineering-difficulty)
+- [Common Misconceptions](#common-misconceptions)
+- [Current Response](#current-response)
 - [Technical Significance](#technical-significance)
 - [Core Architecture](#core-architecture)
 - [Features](#features)
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
 - [Documentation](#documentation)
+- [Research Directions](#research-directions)
 - [Contribution and Security](#contribution-and-security)
 - [Security Model](#security-model)
 - [Notes](#notes)
@@ -64,9 +68,25 @@ Publishing it is useful for three reasons:
 - Cloudflare R2 for durable object storage
 - Cloudflare D1 for file metadata, upload state, share state, and audit records
 - Plain server-rendered HTML, CSS, and JavaScript for a minimal deployment surface
-- `aws4fetch` for R2-compatible request signing
+- native Workers R2 multipart APIs for object assembly inside the Worker
 
 ## Changelog
+
+### April 11, 2026 · BurnBox 2.1.1 Reliability and Research Release · 12:18 PM PDT
+
+- moved multipart assembly fully onto native Workers R2 APIs and removed the extra S3-compatible signing hop
+- clarified retry ownership so transient recovery lives in the client instead of expanding Worker execution paths
+- tightened multipart completion behavior and reduced avoidable per-part coordination overhead
+- validated a stable `419`-part transfer without visible oscillation, reinforcing the cumulative-reliability diagnosis
+- rewrote the public docs to explain why large-file edge upload is a stateful systems problem rather than a simple timeout problem
+- established three graduate-level research directions for the project: resumable multipart protocols, cost-aware coordination state, and capability-oriented public distribution
+
+Developer guidance for this release:
+
+- [Concurrent Chunked Upload Design](docs/en/concurrent-chunked-upload.md)
+- [Architecture](docs/en/architecture.md)
+- [Share Link Delivery Architecture](docs/en/share-link-delivery.md)
+- [Documentation index](docs/README.md)
 
 ### April 10, 2026 · BurnBox 2.1.0 Share-Domain Release · 7:14 PM PDT
 
@@ -105,6 +125,52 @@ Publishing it is useful for three reasons:
 - Use Cloudflare-native primitives instead of layering an unnecessary backend stack.
 - Make the whole system understandable to a single maintainer.
 
+## Engineering Difficulty
+
+BurnBox looks small at the repository level, but its hardest problem is not UI or routing. The hardest problem is edge-native large-file transfer under real network volatility.
+
+This class of system has unusually high demands because one operator action expands into a long-lived distributed pipeline:
+
+- browser slicing and progress reporting
+- repeated Worker request handling across hundreds of parts
+- multipart object assembly in R2
+- persistent upload-state bookkeeping in D1
+- final readiness transition into a canonical file record
+
+For small files, many design mistakes remain invisible. For larger artifacts, they stop being invisible and become operator-visible faults.
+
+The practical lesson is simple: large-file upload on the edge is not one request that happens to be bigger. It is a multi-stage reliability problem whose failure probability accumulates with every additional part.
+
+Read the deeper engineering notes here:
+
+- [Architecture](docs/en/architecture.md)
+- [Concurrent Chunked Upload Design](docs/en/concurrent-chunked-upload.md)
+
+## Common Misconceptions
+
+BurnBox is intentionally documented against several recurring but misleading intuitions:
+
+- large uploads do not usually fail because of one mysterious size threshold; they fail because high part counts increase cumulative failure exposure
+- network instability is not a frontend-only problem; it is amplified by the interaction between browser retries, Worker execution, storage APIs, and database state
+- transfer completion is not the same as file readiness
+- adding retries is not the same as building a recoverable upload protocol
+- edge infrastructure does not remove the need for explicit intermediate state; it makes state design more important
+
+These misconceptions matter because they produce the wrong fixes. If the diagnosis is "the timeout is too short", teams keep tuning timers. If the diagnosis is "this is a cumulative reliability system", teams redesign recovery, state ownership, and observability.
+
+## Current Response
+
+BurnBox's current upload path reflects the lessons above.
+
+- `5 MiB` slices keep individual failures cheap while keeping request counts manageable
+- the Worker controls object identity and multipart finalization
+- R2 multipart uses the native Workers binding instead of an extra S3-compatible hop
+- upload state is persisted so the server can reason about part truth instead of trusting the browser
+- transfer progress and finalization are presented as distinct phases
+- the client owns transient retry behavior, while the Worker keeps the execution path short and legible
+
+This does not mean the upload problem is "solved forever". It means the system is being shaped toward the correct problem statement: cumulative reliability, not only bandwidth or timeout tuning.
+
 ## Technical Significance
 
 BurnBox demonstrates a practical pattern for private file operations on the edge:
@@ -117,7 +183,7 @@ BurnBox demonstrates a practical pattern for private file operations on the edge
 
 ## Core Architecture
 
-The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extends that base into a share-delivery redesign.
+The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extended that base into a share-delivery redesign. The BurnBox 2.1.1 line hardens multipart behavior, clarifies the engineering model, and establishes the repository's research agenda.
 
 The current share architecture uses:
 
@@ -220,6 +286,58 @@ npm run dev
   - [Troubleshooting](docs/ja/troubleshooting.md)
   - [Repository Boundaries](docs/ja/repository-boundaries.md)
 
+## Research Directions
+
+BurnBox is not only a deployable operator tool. It is also a compact research vehicle for edge-native file control systems.
+
+The longer-term research direction is to study how a small control plane can remain understandable while supporting failure-aware large-object movement across unreliable networks. Recent testing in this repository, including a stable `419`-part transfer without visible oscillation after architectural changes, reinforces that the most interesting questions are no longer about raw upload feasibility. They are about state, recovery, and control semantics.
+
+Three graduate-level research directions follow.
+
+### 1. Resumable Multipart Protocols for Edge-Controlled Upload
+
+Research question:
+How should a Worker-mediated upload protocol represent partial truth so that a large transfer can resume from failure without trusting the browser as the source of record and without forcing a whole-upload restart?
+
+This direction includes:
+
+- resumable part negotiation between browser and server
+- persistent part-truth models that do not make every retry ambiguous
+- recovery semantics after browser refresh, network loss, or partial state divergence
+- comparative evaluation against naive retry-only upload designs
+
+This is a strong systems thesis direction because it combines protocol design, failure semantics, and empirical evaluation under unstable networks.
+
+### 2. Cost-Aware State Coordination for High-Part-Count Object Transfer
+
+Research question:
+What is the minimum persistent coordination state required to preserve correctness for multipart upload on the edge when part counts become large and per-part state writes begin to dominate reliability or cost?
+
+This direction includes:
+
+- formalizing which upload facts must be durable and which can remain ephemeral
+- studying tradeoffs between per-part persistence, deferred reconciliation, and compact summary structures
+- measuring the interaction between state-write pressure, latency, and end-to-end completion rate
+- designing alternative coordination paths that preserve correctness while reducing storage-system amplification
+
+This is suitable for a master's or PhD path because it turns an engineering pain point into a principled question about distributed state minimization.
+
+### 3. Capability-Oriented Distribution and Operator-Controlled Public Reach
+
+Research question:
+How can edge-native file systems separate durability, public reach, and revocation into independently controllable layers without collapsing back into either fully public storage or opaque backend mediation?
+
+This direction includes:
+
+- formal models for share capabilities, bounded access windows, and revocation behavior
+- stable public identifiers versus secret capability material
+- architectural tradeoffs between direct delivery, redirect-based control points, and share-domain separation
+- operator legibility: how much control and auditability can be preserved while still keeping the system small
+
+This is the most architecture-oriented research direction in the project. It connects systems design, security semantics, and human-operable infrastructure.
+
+The project's research thesis is that edge reliability is usually not blocked by missing infrastructure primitives. It is blocked by weak state models, misleading progress semantics, and under-specified recovery behavior.
+
 ## Contribution and Security
 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
@@ -254,6 +372,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 10, 2026 at 7:14 PM PDT</sub>
+<sub>Last updated: April 11, 2026 at 12:18 PM PDT</sub>
 
 </div>

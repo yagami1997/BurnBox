@@ -1,10 +1,10 @@
 # デプロイ
 
-*最終更新: April 10, 2026 at 7:14 PM PDT*
+*最終更新: April 11, 2026 at 12:18 PM PDT*
 
 ## 概要
 
-BurnBox 2.1.0 はドメイン分離を前提にしています。
+BurnBox 2.1.1 はドメイン分離を前提にしています。
 
 - 認証済み管理操作を行う private workspace domain
 - 外部向け共有リンクを配信する public share domain

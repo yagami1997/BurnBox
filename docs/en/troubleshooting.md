@@ -1,6 +1,6 @@
 # Troubleshooting
 
-*Last updated: April 10, 2026 at 7:14 PM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 ## Upload succeeds but the file does not appear
 
@@ -48,7 +48,7 @@ Check:
 - the workspace file list is being loaded from the current deployment
 - the active share has not expired or been exhausted
 
-BurnBox 2.1.0 reconstructs active links from `public_handle`. It should not depend on browser-local cache anymore.
+BurnBox 2.1.1 reconstructs active links from `public_handle`. It should not depend on browser-local cache anymore.
 
 ## Public share link opens the wrong host
 

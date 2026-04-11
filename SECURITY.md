@@ -1,6 +1,6 @@
 # Security Policy
 
-*Last updated: April 9, 2026 at 12:49 AM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 ## Supported scope
 

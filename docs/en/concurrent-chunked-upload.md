@@ -1,6 +1,6 @@
 # Concurrent Chunked Upload Design
 
-*Last updated: April 10, 2026 at 7:14 PM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 ## Why this document exists
 
@@ -23,6 +23,13 @@ Under those conditions, direct single-request upload was too fragile. The observ
 - the next upload sometimes caused the previous file to become visible
 - larger files were disproportionately unstable
 - operators could not easily distinguish transfer completion from metadata finalization
+
+Further testing made the pattern clearer:
+
+- instability did not behave like a fixed file-size ceiling
+- risk increased as part counts increased
+- the same file path could appear healthy for smaller uploads and fragile for larger uploads
+- mid-transfer volatility often mattered more than raw throughput
 
 ## Selected approach
 
@@ -64,6 +71,32 @@ This upload design changes the system in four important ways:
 2. It gives the server a durable upload state model instead of trusting client claims.
 3. It separates transfer progress from final readiness.
 4. It makes reliability a first-class system property rather than an accidental side effect.
+
+## The central engineering lesson
+
+The core difficulty is not "uploading a large file". The core difficulty is surviving a long sequence of dependent operations without letting one transient fault invalidate the whole transfer.
+
+That distinction matters. A `2.35 GB` file at `5 MiB` per part requires roughly `470` part requests. A `1.2 GB` file requires roughly half as many. The larger file is not merely larger in bytes. It exposes the system to many more opportunities for:
+
+- browser-level transport interruption
+- Worker execution variance
+- multipart coordination faults
+- state-write pressure
+- retry amplification
+
+This is why BurnBox documents large-file upload as a cumulative reliability problem rather than a simple timeout problem.
+
+## Common diagnosis errors
+
+In systems like this, teams often make the wrong diagnosis first:
+
+- assuming there must be a hidden hard limit at a specific file size
+- assuming network instability lives only in the browser
+- assuming more retries automatically means better recovery
+- assuming a completed transfer body implies a ready file
+- assuming edge infrastructure removes the need for explicit intermediate state
+
+Those assumptions produce poor fixes. BurnBox treats them as documentation-level hazards because they push engineering effort toward the wrong layer.
 
 ## Hard technical problems
 
@@ -112,6 +145,10 @@ The system must remain correct when:
 - finalization fails after all chunks upload
 - metadata commit succeeds or fails independently of transport completion
 
+### Cumulative failure exposure
+
+Every additional part adds another chance for a transient problem to surface. The system therefore has to minimize the amount of work that happens per part, keep retry ownership clear, and avoid stretching one failed part into a long opaque execution path.
+
 ## Why this matters technically
 
 The chunked multipart design is not just an upload optimization. It is the control point that makes the rest of BurnBox credible:
@@ -128,3 +165,9 @@ BurnBox is useful as a compact example of how edge-native operator tools can evo
 The upload path demonstrates a broader lesson:
 
 reliability at the edge often requires explicit intermediate state, not just faster infrastructure.
+
+It also suggests a concrete research agenda:
+
+- resumable multipart protocols instead of whole-upload restart behavior
+- lower-cost or more selective state persistence for high-part-count transfers
+- operator-facing telemetry that can explain where in the transfer pipeline volatility actually occurred

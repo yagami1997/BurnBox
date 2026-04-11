@@ -1,6 +1,6 @@
 # Share Link Delivery Architecture
 
-*Last updated: April 10, 2026 at 7:14 PM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 ## Problem statement
 
@@ -10,7 +10,7 @@ BurnBox originally generated share links from the current request origin. That w
 - the public and private surfaces were not clearly separated
 - token-path links could not be reconstructed later on another machine
 
-BurnBox 2.1.0 changes the share model to fix those problems without turning the system into a larger platform.
+BurnBox 2.1.1 preserves the 2.1.0 share-model redesign that fixed those problems without turning the system into a larger platform.
 
 ## Design goals
 
@@ -124,11 +124,11 @@ The Worker applies host-based behavior:
   - does not expose workspace `/api/*`
   - does not expose the admin root
 
-This separation is one of the main privacy improvements in 2.1.0.
+This separation remains one of the main privacy improvements carried forward into 2.1.1.
 
 ## Operator-facing consequences
 
-The 2.1.0 route changes produce three practical outcomes:
+The 2.1.1 route baseline produces three practical outcomes:
 
 - recipients get direct downloads again
 - operators can copy an active share link from another machine

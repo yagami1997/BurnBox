@@ -1,10 +1,10 @@
 # Contributing
 
-*Last updated: April 10, 2026 at 7:14 PM PDT*
+*Last updated: April 11, 2026 at 12:18 PM PDT*
 
 Thank you for contributing to BurnBox.
 
-The active development target is BurnBox `2.1.0`.
+The active development target is BurnBox `2.1.1`.
 
 ## Scope
 
@@ -26,7 +26,7 @@ BurnBox is intentionally narrow. Contributions are most useful when they preserv
 
 ## Development guide
 
-BurnBox `2.1.0` is the share-system release line. The current architecture direction is:
+BurnBox `2.1.1` is the current release line. The architecture direction is:
 
 - a private workspace domain for authenticated operations
 - a public share domain for external delivery
