@@ -232,6 +232,59 @@ export function renderShareErrorPage(status) {
     </html>`;
 }
 
+export function renderPublicHostUnavailablePage() {
+  return `<!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Service unavailable</title>
+        <style>
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #ffffff;
+            color: #1f2937;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            padding: 24px;
+          }
+          main {
+            width: min(720px, 100%);
+          }
+          h1 {
+            margin: 0 0 16px;
+            font-size: 2.4rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+          }
+          p {
+            margin: 0;
+            color: #4b5563;
+            font-size: 1rem;
+            line-height: 1.6;
+            max-width: 560px;
+          }
+          .code {
+            display: inline-block;
+            margin-top: 18px;
+            color: #6b7280;
+            font-size: 0.92rem;
+          }
+        </style>
+      </head>
+      <body>
+        <main>
+          <h1>Service unavailable</h1>
+          <p>The requested endpoint is temporarily unavailable. Please try again later.</p>
+          <span class="code">Error 503</span>
+        </main>
+      </body>
+    </html>`;
+}
+
 function formatExpiry(expiresAt) {
   if (expiresAt === "9999-12-31T23:59:59.999Z") {
     return "No scheduled expiry";

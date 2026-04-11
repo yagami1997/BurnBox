@@ -3,7 +3,7 @@ import { completeUpload, createUploadPlan, deleteFile, uploadFilePart } from "./
 import { html, json, noContent, readJson, timingSafeEqual } from "./lib/http.js";
 import { renderAppPage } from "./lib/layout.js";
 import { listFiles } from "./lib/repository.js";
-import { renderShareErrorPage } from "./lib/share-pages.js";
+import { renderPublicHostUnavailablePage, renderShareErrorPage } from "./lib/share-pages.js";
 import {
   createShare,
   resolveShareForDownload,
@@ -47,7 +47,7 @@ async function route(request, env) {
   }
 
   if (isKnownShareHost && isAppSurfacePath && !isShareSubdomainHost) {
-    return renderShareError("unavailable");
+    return html(renderPublicHostUnavailablePage(), { status: 503 });
   }
 
   if (request.method === "GET" && url.pathname === "/") {
