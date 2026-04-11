@@ -130,8 +130,6 @@ Set the following production secrets:
 - `ADMIN_PASSWORD`
 - `SESSION_SECRET`
 - `SHARE_LINK_SECRET`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
 
 Recommended separation:
 

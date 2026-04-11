@@ -59,8 +59,6 @@ npx wrangler d1 execute burnbox --local --file=./migrations/0004_share_public_ha
 npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
-npx wrangler secret put R2_ACCESS_KEY_ID
-npx wrangler secret put R2_SECRET_ACCESS_KEY
 ```
 
 ## 5. Configure local development secrets
@@ -71,8 +69,6 @@ Create `.dev.vars` in the project root:
 ADMIN_PASSWORD=your-local-admin-password
 SESSION_SECRET=your-long-random-session-secret
 SHARE_LINK_SECRET=your-long-random-share-link-secret
-R2_ACCESS_KEY_ID=your-r2-access-key-id
-R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 ```
 
 This is required for `wrangler dev --remote`, because local development still needs Worker secrets.

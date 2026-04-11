@@ -59,8 +59,6 @@ npx wrangler d1 execute burnbox --local --file=./migrations/0004_share_public_ha
 npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
-npx wrangler secret put R2_ACCESS_KEY_ID
-npx wrangler secret put R2_SECRET_ACCESS_KEY
 ```
 
 ## 5. ローカル開発用 secrets の設定
@@ -71,8 +69,6 @@ npx wrangler secret put R2_SECRET_ACCESS_KEY
 ADMIN_PASSWORD=your-local-admin-password
 SESSION_SECRET=your-long-random-session-secret
 SHARE_LINK_SECRET=your-long-random-share-link-secret
-R2_ACCESS_KEY_ID=your-r2-access-key-id
-R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 ```
 
 これは `wrangler dev --remote` に必要です。

@@ -256,8 +256,6 @@ npx wrangler d1 execute burnbox --remote --file=./migrations/0004_share_public_h
 npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
-npx wrangler secret put R2_ACCESS_KEY_ID
-npx wrangler secret put R2_SECRET_ACCESS_KEY
 ```
 
 6. Start remote development.
