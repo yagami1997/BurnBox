@@ -1,6 +1,6 @@
 # アーキテクチャ
 
-*最終更新: April 9, 2026 at 5:42 AM PDT*
+*最終更新: April 10, 2026 at 7:14 PM PDT*
 
 ## 概要
 
@@ -10,71 +10,110 @@ BurnBox は Cloudflare ネイティブな薄い制御面です。
 - R2: ファイル本体の保存
 - D1: ファイルメタデータ、アップロード状態、共有状態、監査ログ
 
+BurnBox 2.1.0 には 2 つの主要層があります。
+
+- chunked multipart ingest による upload reliability
+- split domains と stable public handle による share delivery separation
+
 ## 中核の構造変更
 
-BurnBox 2.0.0 で最も重要な技術判断は、単発の single upload をやめ、チャンク分割 + multipart アップロード構成へ移行したことです。
+### 2.0.0: upload reliability
 
-BurnBox はインストーラ、バイナリ、アーカイブのような実ファイルを扱うため、アップロード安定性は極めて重要です。そのため、最小の見た目の単純さよりも、状態が見えることと復旧しやすさを優先しました。
+最初の大きな構造変更は、single-request upload をやめて chunked multipart upload にしたことです。これにより、大きな installer や archive でも現実的に扱えるようになりました。
 
-詳しい理由は [並行チャンク分割アップロード設計](concurrent-chunked-upload.md) を参照してください。
+詳しくは:
 
-## アップロードフロー
+- [並行チャンク分割アップロード設計](concurrent-chunked-upload.md)
+
+### 2.1.0: share delivery redesign
+
+次の大きな構造変更は share system の再設計です。目的は:
+
+- 公開リンクに workspace hostname を出さない
+- active link を端末横断で再構築できるようにする
+- hostname 型共有を baseline ではなく optional extension にする
+
+詳しくは:
+
+- [共有リンク配信アーキテクチャ](share-link-delivery.md)
+
+## Upload flow
 
 1. 管理画面が `POST /api/files/init-upload` を呼ぶ
 2. Worker が D1 に upload plan を作成する
 3. ブラウザがファイルを 5 MiB チャンクに分割する
-4. 各チャンクを Worker のアップロードチャネルへ送る
-5. Worker が R2 multipart を使って最終オブジェクトを組み立てる
+4. 各チャンクを Worker の upload channel へ送る
+5. Worker が R2 multipart を使って final object を組み立てる
 6. 管理画面が `POST /api/files/complete-upload` を呼ぶ
-7. Worker が最終組み立てを確定し、D1 に正式な file record を書き込む
+7. Worker が object assembly を確定し、D1 に final file record を書く
 
-## この構造を採用した理由
+## Share flow
 
-- チャンク化により一回の失敗コストを小さくできる
-- multipart により単一巨大リクエスト依存を避けられる
-- upload planning により storage key をサーバーが支配できる
-- finalization により転送完了と ready 状態を分離できる
-- UI が本当の状態を示せる
-
-## 共有フロー
-
-1. 管理画面がファイルに対して共有レコードを作成する
-2. Worker がランダムトークンを生成し、SHA-256 ハッシュのみを保存する
-3. ユーザーが `/s/:token` を開く
-4. Worker が共有状態を検証する
+1. 管理画面がファイルに対して share record を作成する
+2. Worker は次を生成する
+   - secret token
+   - stable `public_handle`
+3. 設定済み share domain 上の stable public URL を返す
+4. 公開リクエストが share surface に到着する
+5. Worker が share state を検証する
    - revoke されていない
    - 期限切れでない
-   - ダウンロード上限を超えていない
-5. Worker が R2 からファイルを返す
+   - download limit を超えていない
+6. Worker が短命の signed internal download URL を作る
+7. share request を real download path へ redirect する
+8. Worker が R2 からファイルを返す
+
+## なぜこの share flow なのか
+
+- hashed token で capability secrecy を保つ
+- `public_handle` で active link を再構築できる
+- split domain で admin surface の露出を減らす
+- internal signed download hop により制御点を残しつつ public landing page を必須にしない
+- legacy token link を壊さない
+
+## Host 分離モデル
+
+BurnBox は 2 つの public surface を分けます。
+
+- workspace host
+  - admin HTML
+  - 認証済み `/api/*`
+- share host
+  - 公開 share URL
+  - admin UI を出さない
+  - 認証 API を出さない
+
+この分離は Worker route layer で強制されます。
 
 ## データモデル
 
 ### `files`
 
-- ファイル識別子
+- file identity
 - storage key
-- サイズと content type
+- file size と content type
 - tags と note
-- timestamp
+- timestamps
 
 ### `shares`
 
-- ファイル参照
+- file reference
 - token hash
+- `public_handle`
 - expiration
 - max downloads
 - current download count
-- revoke timestamp
+- revocation timestamp
 
 ### `upload_plans`
 
-- upload 識別子
-- サーバー管理の storage key
-- declared size
+- upload identity
+- server-controlled storage key
+- declared file size
 - chunk size
 - multipart upload id
 - upload status
-- timestamp
+- timestamps
 
 ### `upload_parts`
 
@@ -82,7 +121,7 @@ BurnBox はインストーラ、バイナリ、アーカイブのような実フ
 - part number
 - ETag
 - part size
-- timestamp
+- timestamps
 
 ### `audit_logs`
 

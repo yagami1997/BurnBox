@@ -1,6 +1,6 @@
 # リポジトリ境界
 
-*最終更新: April 9, 2026 at 5:42 AM PDT*
+*最終更新: April 10, 2026 at 7:14 PM PDT*
 
 ## 公開リポジトリ
 
@@ -43,3 +43,4 @@
 - 実際の `wrangler.toml` はローカル専用にします
 - 機密値は Wrangler secrets を使います
 - アカウント固有の route、本番 origin、アクセスキー、セッション secret はコミットしません
+- 公開ドキュメントには本番 hostname ではなく placeholder domain を使います

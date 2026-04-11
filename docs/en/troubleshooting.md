@@ -1,6 +1,6 @@
 # Troubleshooting
 
-*Last updated: April 9, 2026 at 5:42 AM PDT*
+*Last updated: April 10, 2026 at 7:14 PM PDT*
 
 ## Upload succeeds but the file does not appear
 
@@ -13,7 +13,7 @@ Check:
 
 ## Upload reaches a high percentage and appears to stop
 
-BurnBox now separates chunk transfer from final object finalization. If the upload reaches the high-nineties and switches to a finalizing state, the transfer body is already done and the Worker is completing multipart assembly plus D1 writeback.
+BurnBox separates chunk transfer from final object finalization. If the upload reaches the high nineties and switches to a finalizing state, the transfer body is already done and the Worker is completing multipart assembly plus D1 writeback.
 
 ## Chunked upload fails
 
@@ -27,7 +27,7 @@ Check:
 
 ## Migration reports duplicate column errors
 
-If `0003_multipart_uploads.sql` fails with a duplicate-column error, your D1 database may already contain the multipart fields. Inspect the table schema first instead of rerunning the same migration blindly.
+If `0003_multipart_uploads.sql` or `0004_share_public_handle.sql` fails with a duplicate-column or duplicate-index error, your D1 database may already contain the expected schema. Inspect the live table structure first instead of rerunning the same migration blindly.
 
 ## Share creation returns an error
 
@@ -35,8 +35,55 @@ Check:
 
 - the file still exists
 - D1 schema is up to date
-- the `upload_plans` migration has been applied
+- `0004_share_public_handle.sql` has been applied
 - the share payload is valid
+- `SHARE_BASE_URL` is configured
+
+## An active share exists but `Copy link` does not appear
+
+Check:
+
+- the active share was created after `public_handle` support was deployed
+- `0004_share_public_handle.sql` has been applied
+- the workspace file list is being loaded from the current deployment
+- the active share has not expired or been exhausted
+
+BurnBox 2.1.0 reconstructs active links from `public_handle`. It should not depend on browser-local cache anymore.
+
+## Public share link opens the wrong host
+
+Check:
+
+- `SHARE_BASE_URL` points to the public share hostname
+- the workspace hostname is configured in `APP_BASE_URL`
+- `ALLOWED_APP_HOSTS` and `ALLOWED_SHARE_HOSTS` match the intended split
+
+## Hostname-style share links fail with SSL errors
+
+Typical symptoms:
+
+- `ERR_SSL_VERSION_OR_CIPHER_MISMATCH`
+- TLS handshake failure on `https://abc123.relay.example.net`
+
+Check:
+
+- wildcard DNS is proxied
+- wildcard Worker route exists
+- wildcard certificate coverage actually exists
+
+If the wildcard certificate layer is not intentionally provisioned, fall back to the stable path-based share link:
+
+- `https://relay.example.net/h/{publicHandle}`
+
+## Share domain exposes admin routes
+
+Check:
+
+- the Worker deployment is current
+- `ALLOWED_SHARE_HOSTS` includes only the exact public share host
+- your public share host is routed to the same Worker version as the workspace host
+
+The public share host should not expose `/api/*` or the workspace root.
 
 ## Route deployment fails
 

@@ -1,6 +1,6 @@
 # Repository Boundaries
 
-*Last updated: April 9, 2026 at 5:42 AM PDT*
+*Last updated: April 10, 2026 at 7:14 PM PDT*
 
 ## Public repository
 
@@ -43,3 +43,4 @@ Use the following structure:
 - Keep the real `wrangler.toml` local.
 - Use Wrangler secrets for sensitive values.
 - Never commit account-specific routes, production origins, access keys, or session secrets.
+- Keep public documentation on placeholder domains rather than production hostnames.

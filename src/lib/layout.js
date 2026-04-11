@@ -1062,6 +1062,12 @@ export function renderAppPage({ authenticated, files }) {
             .filter(Boolean),
         );
 
+        for (const file of files) {
+          if (file.activeShare?.id && file.activeShare?.url) {
+            storedShareLinks[file.activeShare.id] = file.activeShare.url;
+          }
+        }
+
         let changed = false;
         for (const shareId of Object.keys(storedShareLinks)) {
           if (!activeIds.has(shareId)) {
@@ -1070,7 +1076,7 @@ export function renderAppPage({ authenticated, files }) {
           }
         }
 
-        if (changed) {
+        if (changed || files.some((file) => file.activeShare?.id && file.activeShare?.url)) {
           writeStoredShareLinks(storedShareLinks);
         }
       }
@@ -1158,13 +1164,13 @@ export function renderAppPage({ authenticated, files }) {
         const expiryLabel = noExpiration
           ? "No expiration"
           : new Date(file.activeShare.expiresAt).toLocaleString();
-        const cachedLink = storedShareLinks[file.activeShare.id];
+        const shareUrl = file.activeShare.url || storedShareLinks[file.activeShare.id] || "";
 
         return \`
           <div class="share-state">
             <strong>\${noExpiration ? expiryLabel : \`Live until \${expiryLabel}\`}</strong>
             <span class="subtle">\${usage}</span>
-            \${cachedLink ? \`<div class="share-state-actions"><button class="link-mini" type="button" data-copy-active-share-id="\${escapeHtml(file.activeShare.id)}">Copy link</button></div>\` : ""}
+            \${shareUrl ? \`<div class="share-state-actions"><button class="link-mini" type="button" data-copy-share-url="\${escapeHtml(shareUrl)}">Copy link</button></div>\` : ""}
           </div>
         \`;
       }
@@ -1282,12 +1288,11 @@ export function renderAppPage({ authenticated, files }) {
           });
         });
 
-        container.querySelectorAll("[data-copy-active-share-id]").forEach((button) => {
+        container.querySelectorAll("[data-copy-share-url]").forEach((button) => {
           button.addEventListener("click", async () => {
-            const shareId = button.getAttribute("data-copy-active-share-id");
-            const url = storedShareLinks[shareId];
+            const url = button.getAttribute("data-copy-share-url") || "";
             if (!url) {
-              setStatus("This share URL is no longer available in local cache.", true);
+              setStatus("This share URL is not available.", true);
               return;
             }
 
@@ -1295,7 +1300,7 @@ export function renderAppPage({ authenticated, files }) {
               if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(url);
               }
-              setStatus("Share link copied.", false, "The cached link is now in your clipboard.");
+              setStatus("Share link copied.", false, "The active link is now in your clipboard.");
             } catch {
               setStatus("Clipboard access failed.", true);
             }

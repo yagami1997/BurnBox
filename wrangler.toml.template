@@ -5,7 +5,9 @@ compatibility_date = "2026-04-09"
 # Route rules
 # Use an object route so Cloudflare knows which zone the pattern belongs to.
 routes = [
-  { pattern = "burnbox.example.com/*", zone_name = "example.com" }
+  { pattern = "burnbox.example.com/*", zone_name = "example.com" },
+  { pattern = "share.example.net/*", zone_name = "example.net" },
+  { pattern = "*.share.example.net/*", zone_name = "example.net" }
 ]
 
 d1_databases = [
@@ -19,10 +21,16 @@ bucket_name = "YOUR_BUCKET_NAME"
 [vars]
 CLOUDFLARE_ACCOUNT_ID = "YOUR_CLOUDFLARE_ACCOUNT_ID"
 R2_BUCKET_NAME = "YOUR_BUCKET_NAME"
+APP_BASE_URL = "https://burnbox.example.com"
+SHARE_BASE_URL = "https://share.example.net"
+SHARE_SUBDOMAIN_BASE_DOMAIN = "share.example.net"
+ALLOWED_APP_HOSTS = "burnbox.example.com"
+ALLOWED_SHARE_HOSTS = "share.example.net"
 
 # Configure secrets with Wrangler instead of committing them to the repository:
 #
 # npx wrangler secret put ADMIN_PASSWORD
 # npx wrangler secret put SESSION_SECRET
+# npx wrangler secret put SHARE_LINK_SECRET
 # npx wrangler secret put R2_ACCESS_KEY_ID
 # npx wrangler secret put R2_SECRET_ACCESS_KEY

@@ -27,8 +27,7 @@
 - [Workspace Preview](#workspace-preview)
 - [Technical Philosophy](#technical-philosophy)
 - [Technical Significance](#technical-significance)
-- [Research Significance](#research-significance)
-- [Core Upload Architecture](#core-upload-architecture)
+- [Core Architecture](#core-architecture)
 - [Features](#features)
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
@@ -40,7 +39,7 @@
 
 ## Why BurnBox Exists
 
-BurnBox is built for a narrow but important operational model:
+BurnBox is built for a narrow operational model:
 
 - the file remains in infrastructure you control
 - administration happens in a private workspace, not a public upload surface
@@ -53,15 +52,11 @@ This project is intentionally not a generic public file-sharing site. It is a co
 
 BurnBox began as a private operational tool. It is being opened because small, security-conscious systems are worth studying in the open.
 
-Too much modern tooling is either oversized for the job or hidden behind proprietary operational complexity. BurnBox takes the opposite position: a narrow system, a legible architecture, and explicit control over storage, access, and revocation.
+Publishing it is useful for three reasons:
 
-Publishing it is valuable for three reasons:
-
-- to show that a useful internal tool can remain small, auditable, and technically honest
-- to offer a practical reference for builders who want edge-native control planes without a multi-service platform
-- to contribute a concrete example of capability-based distribution, where access can disappear without pretending the underlying file never existed
-
-Open-sourcing this project is not just distribution. It is a statement that operational clarity, constrained scope, and inspectable infrastructure still matter, especially when the system touches storage, trust, and release control.
+- it shows that an internal tool can remain small, auditable, and operationally honest
+- it offers a practical edge-native reference for builders who want direct control over storage and capability links
+- it documents a concrete pattern where file durability and external reach are intentionally separated
 
 ## Stack
 
@@ -73,19 +68,30 @@ Open-sourcing this project is not just distribution. It is a statement that oper
 
 ## Changelog
 
+### April 10, 2026 · BurnBox 2.1.0 Share-Domain Release · 7:14 PM PDT
+
+- shipped split-domain sharing with a private workspace domain and a public share domain
+- introduced `public_handle` as the stable public identifier for share links
+- changed the default stable share URL to `https://relay.example.net/h/{publicHandle}`
+- kept legacy `/s/{token}` links for compatibility instead of breaking existing shares
+- removed the mandatory share landing page from the default flow and restored direct-download behavior
+- fixed cross-device `Copy link` behavior by making active share URLs reconstructable on the server
+- documented Cloudflare DNS, route, and certificate constraints for hostname-style sharing
+
+<details>
+<summary>Older changelog entries</summary>
+
 ### April 9, 2026 · Major Refactor and Chunked Upload Rollout · 5:42 AM PDT
 
 - rebuilt BurnBox around a single Cloudflare Worker, R2, and D1 architecture
 - replaced the legacy public-upload flow with a private admin workspace
 - introduced signed admin sessions and hashed share-token storage
 - redesigned the interface, share controls, and documentation structure for public release
-- separated local-only material from the future open-source repository layout
 - moved the upload path from optimistic single-request transfer to a chunked multipart model
 - adopted 5 MiB chunk slicing for stability-first transfer behavior
-- introduced Worker-mediated upload-part handling and R2 multipart assembly
 - added D1-backed upload plans and uploaded-part tracking
-- added truthful transfer progress with an explicit finalization phase
-- established the upload subsystem as the primary technical focus of BurnBox 2.0.0
+
+</details>
 
 ## Workspace Preview
 
@@ -107,48 +113,40 @@ BurnBox demonstrates a practical pattern for private file operations on the edge
 - hashed share tokens instead of plaintext capability storage
 - revocable, bounded distribution links on top of durable storage
 - chunked multipart upload for reliability-sensitive edge ingestion
-- a minimal reference architecture for secure operational tooling
+- split-domain delivery so public links do not have to expose the admin surface
 
-## Research Significance
+## Core Architecture
 
-BurnBox is also a small research artifact in applied security and distributed systems practice:
+The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extends that base into a share-delivery redesign.
 
-- it models access as a temporary capability rather than permanent publication
-- it separates object durability from audience reach
-- it treats revocation, bounded consumption, and auditability as system primitives
-- it turns upload reliability into an explicit state-machine problem instead of a hidden transport assumption
+The current share architecture uses:
 
-For researchers and builders, the project is useful as a concrete example of how edge infrastructure can host narrow, security-conscious operator tools without expanding into a conventional multi-service platform.
+- one private workspace domain such as `https://console.example.com`
+- one public share domain such as `https://relay.example.net`
+- stable public identifiers stored as `public_handle`
+- direct-download share links using `/h/{publicHandle}`
+- legacy `/s/{token}` compatibility for older issued links
+- optional hostname-style sharing for operators who are willing to manage wildcard certificates
 
-## Core Upload Architecture
+That route was chosen for a specific reason: the original token-based path could not be reconstructed across devices because only the token hash is stored in D1. `public_handle` fixes that by giving the system a stable public identifier that can be rebuilt from database state without exposing internal file or share IDs.
 
-The core technical challenge in BurnBox 2.0.0 is upload reliability.
+Read the technical notes here:
 
-The project originally started from a smaller single-request upload model, but the real workload quickly made that approach too optimistic for installers, binary packages, and other large artifacts. BurnBox now treats upload as a stateful systems problem, not a single HTTP event.
-
-The current design uses:
-
-- 5 MiB chunk slicing
-- Worker-mediated chunk transport
-- R2 multipart assembly
-- D1-backed upload planning and uploaded-part tracking
-- an explicit finalization phase between transfer completion and ready-state visibility
-
-This upload subsystem is the most important technical component in the project because it is the point where browser behavior, network volatility, edge execution, object assembly, and metadata consistency all meet.
-
-Read the full design note here:
-
+- [Architecture](docs/en/architecture.md)
+- [Share Link Delivery Architecture](docs/en/share-link-delivery.md)
 - [Concurrent Chunked Upload Design](docs/en/concurrent-chunked-upload.md)
 
 ## Features
 
-- Signed admin session with `HttpOnly` cookie
-- Chunked multipart upload with 5 MiB slices
+- signed admin session with `HttpOnly` cookie
+- chunked multipart upload with 5 MiB slices
 - D1-backed file, upload, and share metadata
-- Temporary share links with expiration or download limits
-- Share revocation
-- File deletion with related share invalidation
-- Minimal single-worker architecture
+- split-domain sharing with share-domain URL generation
+- stable share URLs using `public_handle`
+- legacy token-link compatibility
+- share revocation and download limits
+- file deletion with related share invalidation
+- minimal single-worker architecture
 
 ## Project Structure
 
@@ -157,11 +155,13 @@ Read the full design note here:
 - `src/lib/audit.js`: audit log write helper
 - `src/lib/session.js`: signed session handling
 - `src/lib/files.js`: upload planning, part upload, multipart completion, deletion
-- `src/lib/shares.js`: share creation, revoke, and download resolution
-- `src/lib/repository.js`: file list query layer
+- `src/lib/shares.js`: share creation, revoke, view/download resolution, and capability checks
+- `src/lib/repository.js`: file list query layer and active share projection
+- `src/lib/layout.js`: admin workspace rendering and client-side interaction logic
 - `migrations/0001_initial.sql`: initial D1 schema
-- `migrations/0002_upload_plans.sql`: upload plan table for server-validated completion flow
-- `migrations/0003_multipart_uploads.sql`: multipart upload state extensions and uploaded-part tracking
+- `migrations/0002_upload_plans.sql`: upload plan table
+- `migrations/0003_multipart_uploads.sql`: multipart upload state extensions
+- `migrations/0004_share_public_handle.sql`: stable public share handle support
 
 ## Quick Start
 
@@ -181,6 +181,7 @@ npm install
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0003_multipart_uploads.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0004_share_public_handle.sql
 ```
 
 5. Configure production secrets.
@@ -188,22 +189,12 @@ npx wrangler d1 execute burnbox --remote --file=./migrations/0003_multipart_uplo
 ```bash
 npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
+npx wrangler secret put SHARE_LINK_SECRET
 npx wrangler secret put R2_ACCESS_KEY_ID
 npx wrangler secret put R2_SECRET_ACCESS_KEY
 ```
 
-6. Create local development secrets.
-
-Create a `.dev.vars` file for `wrangler dev --remote`:
-
-```env
-ADMIN_PASSWORD=your-local-admin-password
-SESSION_SECRET=your-long-random-session-secret
-R2_ACCESS_KEY_ID=your-r2-access-key-id
-R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
-```
-
-7. Start remote development.
+6. Start remote development.
 
 ```bash
 npm run dev
@@ -216,37 +207,39 @@ npm run dev
   - [Quickstart](docs/en/quickstart.md)
   - [Deployment](docs/en/deployment.md)
   - [Architecture](docs/en/architecture.md)
+  - [Share Link Delivery Architecture](docs/en/share-link-delivery.md)
   - [Concurrent Chunked Upload Design](docs/en/concurrent-chunked-upload.md)
   - [Troubleshooting](docs/en/troubleshooting.md)
   - [Repository Boundaries](docs/en/repository-boundaries.md)
 - Japanese
-  - [Japanese Quickstart](docs/ja/quickstart.md)
-  - [Japanese Deployment](docs/ja/deployment.md)
-  - [Japanese Architecture](docs/ja/architecture.md)
-  - [Japanese Concurrent Chunked Upload Design](docs/ja/concurrent-chunked-upload.md)
-  - [Japanese Troubleshooting](docs/ja/troubleshooting.md)
-  - [Japanese Repository Boundaries](docs/ja/repository-boundaries.md)
+  - [Quickstart](docs/ja/quickstart.md)
+  - [Deployment](docs/ja/deployment.md)
+  - [Architecture](docs/ja/architecture.md)
+  - [Share Link Delivery Architecture](docs/ja/share-link-delivery.md)
+  - [Concurrent Chunked Upload Design](docs/ja/concurrent-chunked-upload.md)
+  - [Troubleshooting](docs/ja/troubleshooting.md)
+  - [Repository Boundaries](docs/ja/repository-boundaries.md)
 
 ## Contribution and Security
 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
-- Read [SECURITY.md](SECURITY.md) before reporting a vulnerability or discussing a security-sensitive issue.
+- Read `SECURITY.md` before reporting a vulnerability or discussing a security-sensitive issue.
 
 ## Security Model
 
 - The admin workspace is private and session-protected.
 - Share tokens are stored as hashes, not plaintext.
+- `public_handle` is a public identifier, not a secret.
 - File objects are durable by default in R2.
 - Share capability can expire, be exhausted, or be revoked.
 - Download responses use `Cache-Control: private, no-store`.
 
 ## Notes
 
-- Chunked multipart upload is now the primary ingestion path.
-- Direct browser uploads require the expected Worker route and production secrets to be configured correctly.
-- Local `wrangler dev --remote` expects `.dev.vars` so the Worker can read secrets during development.
-- Protect `POST /api/auth/login` with a Cloudflare WAF or rate-limit rule in production.
-- Example configuration files in this repository use placeholders only.
+- Public Git-tracked documentation uses placeholder domains only.
+- Do not publish personal domains, bucket names, account identifiers, or route patterns.
+- Default stable sharing uses `/h/{publicHandle}` because it is reconstructable across devices and sessions.
+- Hostname-style sharing remains an optional deployment mode and may require additional certificate products.
 
 ## License
 
@@ -261,6 +254,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 9, 2026 at 5:42 AM PDT</sub>
+<sub>Last updated: April 10, 2026 at 7:14 PM PDT</sub>
 
 </div>

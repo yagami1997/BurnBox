@@ -3,7 +3,15 @@ import { completeUpload, createUploadPlan, deleteFile, uploadFilePart } from "./
 import { html, json, noContent, readJson, timingSafeEqual } from "./lib/http.js";
 import { renderAppPage } from "./lib/layout.js";
 import { listFiles } from "./lib/repository.js";
-import { createShare, resolveShareForDownload, revokeShare } from "./lib/shares.js";
+import { renderShareErrorPage } from "./lib/share-pages.js";
+import {
+  createShare,
+  resolveShareForDownload,
+  resolveShareForDownloadByPublicHandle,
+  resolveShareForView,
+  resolveShareForViewByPublicHandle,
+  revokeShare,
+} from "./lib/shares.js";
 import { clearSessionCookie, createSession, readSession } from "./lib/session.js";
 
 export default {
@@ -22,7 +30,21 @@ export default {
 
 async function route(request, env) {
   const url = new URL(request.url);
+  const host = (request.headers.get("host") || url.hostname || "").toLowerCase();
+  const shareHosts = parseHostList(env.ALLOWED_SHARE_HOSTS);
+  const shareSubdomainBaseDomain = getShareSubdomainBaseDomain(env, url);
+  const sharePublicHandle = extractSharePublicHandleFromHost(host, shareSubdomainBaseDomain);
+  const isShareSubdomainHost = Boolean(sharePublicHandle);
+  const sharePublicHandlePath = !isShareSubdomainHost ? extractSharePublicHandleFromPath(url.pathname, { download: false }) : "";
+  const sharePublicHandleDownloadPath = !isShareSubdomainHost ? extractSharePublicHandleFromPath(url.pathname, { download: true }) : "";
+  const isKnownShareHost = shareHosts.has(host);
+  const isApiPath = url.pathname.startsWith("/api/");
+  const isAppSurfacePath = request.method === "GET" && url.pathname === "/";
   const session = await readSession(request, env);
+
+  if ((isKnownShareHost || isShareSubdomainHost) && (isApiPath || (isAppSurfacePath && !isShareSubdomainHost))) {
+    return notFoundForRequest(request);
+  }
 
   if (request.method === "GET" && url.pathname === "/") {
     const files = session ? await listFiles(env) : [];
@@ -259,12 +281,23 @@ async function route(request, env) {
       return json({ error: "maxDownloads must be a positive integer or null" }, { status: 400 });
     }
 
-    const share = await createShare(env, { fileId, expiresInHours, maxDownloads });
+    let share;
+    try {
+      share = await createShare(env, { fileId, expiresInHours, maxDownloads });
+    } catch (error) {
+      if (String(error?.message || "").includes("public_handle migration")) {
+        return json({ error: error.message }, { status: 500 });
+      }
+      throw error;
+    }
     if (!share) {
       return json({ error: "File not found" }, { status: 404 });
     }
+    if (!share.publicHandle) {
+      return json({ error: "Share handle generation failed" }, { status: 500 });
+    }
 
-    const shareUrl = `${url.origin}/s/${share.token}`;
+    const shareUrls = buildShareUrls(env, url, share);
     await recordAuditLog(env, {
       actor: session.sub,
       action: "share.created",
@@ -284,8 +317,11 @@ async function route(request, env) {
         expiresAt: share.expiresAt,
         maxDownloads: share.maxDownloads,
         downloadCount: share.downloadCount,
+        publicHandle: share.publicHandle,
       },
-      shareUrl,
+      shareUrl: shareUrls.shareUrl,
+      sharePathUrl: shareUrls.sharePathUrl,
+      shareSubdomainUrl: shareUrls.shareSubdomainUrl,
     }, { status: 201 });
   }
 
@@ -317,16 +353,46 @@ async function route(request, env) {
     return json({ success: true });
   }
 
-  if (request.method === "GET" && url.pathname.startsWith("/s/")) {
-    const token = url.pathname.replace("/s/", "").trim();
-    if (!token) {
+  if (request.method === "GET" && (
+    (!isShareSubdomainHost && url.pathname.startsWith("/s/") && url.pathname.endsWith("/download"))
+    || (!isShareSubdomainHost && sharePublicHandleDownloadPath)
+    || (isShareSubdomainHost && url.pathname === "/download")
+  )) {
+    const locator = isShareSubdomainHost
+      ? { type: "public_handle", value: sharePublicHandle }
+      : sharePublicHandleDownloadPath
+        ? { type: "public_handle", value: sharePublicHandleDownloadPath }
+        : { type: "token", value: extractShareToken(url.pathname, { download: true }) };
+    if (!locator.value) {
       return html("<h1>Invalid share link</h1>", { status: 400 });
     }
 
-    const result = await resolveShareForDownload(env, token);
+    const ts = Number(url.searchParams.get("ts"));
+    const sig = url.searchParams.get("sig") || "";
+    const signatureValid = await validateShareDownloadSignature(env, locator.type, locator.value, ts, sig);
+    if (!signatureValid) {
+      return renderShareError("unavailable");
+    }
+
+    const result = locator.type === "public_handle"
+      ? await resolveShareForDownloadByPublicHandle(env, locator.value)
+      : await resolveShareForDownload(env, locator.value);
     if (result.status !== "ready") {
       return renderShareError(result.status);
     }
+
+    await recordAuditLog(env, {
+      actor: "share_guest",
+      action: "share.downloaded",
+      targetType: "share",
+      targetId: result.share.id,
+      meta: {
+        fileId: result.share.file_id,
+        via: locator.type,
+        publicHandle: result.share.public_handle || null,
+        host,
+      },
+    });
 
     const headers = new Headers();
     headers.set("content-type", result.share.content_type || "application/octet-stream");
@@ -340,89 +406,183 @@ async function route(request, env) {
     });
   }
 
+  if (request.method === "GET" && (
+    (!isShareSubdomainHost && url.pathname.startsWith("/s/"))
+    || (!isShareSubdomainHost && sharePublicHandlePath)
+    || (isShareSubdomainHost && url.pathname === "/")
+  )) {
+    const locator = isShareSubdomainHost
+      ? { type: "public_handle", value: sharePublicHandle }
+      : sharePublicHandlePath
+        ? { type: "public_handle", value: sharePublicHandlePath }
+        : { type: "token", value: extractShareToken(url.pathname, { download: false }) };
+    if (!locator.value) {
+      return html("<h1>Invalid share link</h1>", { status: 400 });
+    }
+
+    const result = locator.type === "public_handle"
+      ? await resolveShareForViewByPublicHandle(env, locator.value)
+      : await resolveShareForView(env, locator.value);
+    if (result.status !== "ready") {
+      return renderShareError(result.status);
+    }
+
+    const downloadParams = await createShareDownloadParams(env, locator.type, locator.value);
+    const downloadPath = locator.type === "public_handle"
+      ? (isShareSubdomainHost ? `/download` : `/h/${encodeURIComponent(locator.value)}/download`)
+      : `/s/${encodeURIComponent(locator.value)}/download`;
+    const downloadUrl = `${downloadPath}?ts=${encodeURIComponent(downloadParams.ts)}&sig=${encodeURIComponent(downloadParams.sig)}`;
+    return Response.redirect(new URL(downloadUrl, url), 302);
+  }
+
+  return json({ error: "Not found" }, { status: 404 });
+}
+
+function normalizeBaseUrl(value) {
+  if (!value) return null;
+  return String(value).trim().replace(/\/+$/, "");
+}
+
+function parseHostList(value) {
+  if (!value) return new Set();
+
+  return new Set(
+    String(value)
+      .split(",")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function notFoundForRequest(request) {
+  if ((request.headers.get("accept") || "").includes("text/html")) {
+    return html("<h1>Not found</h1>", { status: 404 });
+  }
+
   return json({ error: "Not found" }, { status: 404 });
 }
 
 function renderShareError(status) {
-  const copy = {
-    missing: { title: "Share not found", description: "This link does not exist." },
-    revoked: { title: "Share revoked", description: "The owner has revoked this link." },
-    expired: { title: "Share expired", description: "This temporary link has expired." },
-    depleted: { title: "Download limit reached", description: "This link has no remaining downloads." },
-    missing_object: { title: "File unavailable", description: "The storage backend is missing the object for this share." },
-    unavailable: { title: "Share unavailable", description: "This share cannot be used right now. Please try again." },
-  }[status] || { title: "Unavailable", description: "This share cannot be used right now." };
+  return html(renderShareErrorPage(status), {
+    status: status === "missing" ? 404 : status === "missing_object" || status === "unavailable" ? 503 : 410,
+  });
+}
 
-  return html(
-    `<!doctype html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>${copy.title}</title>
-          <style>
-            :root {
-              --ink: #1d150f;
-              --muted: #6f5d4a;
-              --line: rgba(50, 32, 16, 0.12);
-            }
-            * { box-sizing: border-box; }
-            body {
-              margin: 0;
-              min-height: 100vh;
-              display: grid;
-              place-items: center;
-              background:
-                radial-gradient(circle at top left, rgba(197, 75, 26, 0.18), transparent 30%),
-                radial-gradient(circle at bottom right, rgba(79, 98, 84, 0.16), transparent 30%),
-                linear-gradient(180deg, #ece4d5, #f7f1e7);
-              color: var(--ink);
-              font-family: Georgia, "Times New Roman", serif;
-            }
-            article {
-              width: min(680px, calc(100% - 28px));
-              padding: 30px;
-              border-radius: 32px;
-              background:
-                linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(247, 240, 230, 0.94));
-              border: 1px solid var(--line);
-              box-shadow: 0 28px 90px rgba(79,46,17,.14);
-            }
-            .eyebrow {
-              display: inline-flex;
-              padding: 9px 14px;
-              border-radius: 999px;
-              border: 1px solid var(--line);
-              color: var(--muted);
-              letter-spacing: .12em;
-              text-transform: uppercase;
-              font-size: .78rem;
-            }
-            h1 {
-              margin: 22px 0 12px;
-              font-size: clamp(2.2rem, 8vw, 4.6rem);
-              line-height: .9;
-              letter-spacing: -.05em;
-            }
-            p {
-              margin: 0;
-              color: var(--muted);
-              font-size: 1.06rem;
-              line-height: 1.45;
-              max-width: 520px;
-            }
-          </style>
-        </head>
-        <body>
-          <article>
-            <div class="eyebrow">BurnBox Share</div>
-            <h1>${copy.title}</h1>
-            <p>${copy.description}</p>
-          </article>
-        </body>
-      </html>`,
-    { status: status === "missing" ? 404 : status === "missing_object" || status === "unavailable" ? 503 : 410 },
+async function createShareDownloadParams(env, locatorType, locatorValue) {
+  const ts = String(Date.now());
+  const sig = await signShareDownload(env, `${locatorType}:${locatorValue}`, ts);
+  return { ts, sig };
+}
+
+async function validateShareDownloadSignature(env, locatorType, locatorValue, ts, sig) {
+  if (!Number.isFinite(ts) || ts <= 0 || !sig) {
+    return false;
+  }
+
+  const age = Math.abs(Date.now() - ts);
+  if (age > 5 * 60 * 1000) {
+    return false;
+  }
+
+  const expected = await signShareDownload(env, `${locatorType}:${locatorValue}`, String(ts));
+  return timingSafeEqual(expected, sig);
+}
+
+async function signShareDownload(env, locatorValue, ts) {
+  const secret = String(env.SHARE_LINK_SECRET || env.SESSION_SECRET || "");
+  if (!secret) {
+    throw new Error("Worker secret configuration is incomplete");
+  }
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
   );
+  const payload = new TextEncoder().encode(`${locatorValue}:${ts}`);
+  const signature = await crypto.subtle.sign("HMAC", key, payload);
+  return encodeBase64Url(new Uint8Array(signature));
+}
+
+function buildShareUrls(env, url, share) {
+  const shareBaseUrl = normalizeBaseUrl(env.SHARE_BASE_URL) || url.origin;
+  const sharePathUrl = `${shareBaseUrl}/h/${share.publicHandle}`;
+  const shareLegacyTokenUrl = `${shareBaseUrl}/s/${share.token}`;
+  const subdomainBaseDomain = getShareSubdomainBaseDomain(env, url);
+  const shareSubdomainUrl = subdomainBaseDomain
+    ? `https://${share.publicHandle}.${subdomainBaseDomain}`
+    : null;
+
+  return {
+    shareUrl: shareSubdomainUrl || sharePathUrl,
+    sharePathUrl,
+    shareLegacyTokenUrl,
+    shareSubdomainUrl,
+  };
+}
+
+function getShareSubdomainBaseDomain(env, url) {
+  if (env.SHARE_SUBDOMAIN_BASE_DOMAIN) {
+    return String(env.SHARE_SUBDOMAIN_BASE_DOMAIN).trim().toLowerCase();
+  }
+  return "";
+}
+
+function extractSharePublicHandleFromHost(host, baseDomain) {
+  if (!host || !baseDomain || host === baseDomain) {
+    return "";
+  }
+
+  const suffix = `.${baseDomain}`;
+  if (!host.endsWith(suffix)) {
+    return "";
+  }
+
+  const label = host.slice(0, -suffix.length);
+  if (!label || label.includes(".")) {
+    return "";
+  }
+
+  return label;
+}
+
+function extractShareToken(pathname, options = {}) {
+  if (!pathname.startsWith("/s/")) return "";
+
+  const remainder = pathname.slice(3);
+  if (!remainder) return "";
+
+  if (options.download) {
+    if (!remainder.endsWith("/download")) return "";
+    return remainder.slice(0, -"/download".length).replace(/\/+$/, "").trim();
+  }
+
+  return remainder.split("/")[0].trim();
+}
+
+function extractSharePublicHandleFromPath(pathname, options = {}) {
+  if (!pathname.startsWith("/h/")) return "";
+
+  const remainder = pathname.slice(3);
+  if (!remainder) return "";
+
+  if (options.download) {
+    if (!remainder.endsWith("/download")) return "";
+    return remainder.slice(0, -"/download".length).replace(/\/+$/, "").trim();
+  }
+
+  return remainder.split("/")[0].trim();
+}
+
+function encodeBase64Url(bytes) {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 
