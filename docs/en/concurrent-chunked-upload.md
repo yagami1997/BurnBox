@@ -1,6 +1,6 @@
 # Concurrent Chunked Upload Design
 
-*Last updated: April 11, 2026 at 12:18 PM PDT*
+*Last updated: April 11, 2026 at 4:27 AM PDT*
 
 ## Why this document exists
 
@@ -30,6 +30,7 @@ Further testing made the pattern clearer:
 - risk increased as part counts increased
 - the same file path could appear healthy for smaller uploads and fragile for larger uploads
 - mid-transfer volatility often mattered more than raw throughput
+- after the current reliability changes, transfers through `4.3 GB / 870 parts` and `11 GB / 2200 parts` completed successfully
 
 ## Selected approach
 
@@ -85,6 +86,8 @@ That distinction matters. A `2.35 GB` file at `5 MiB` per part requires roughly 
 - retry amplification
 
 This is why BurnBox documents large-file upload as a cumulative reliability problem rather than a simple timeout problem.
+
+The current implementation should therefore be read as a stable baseline, not only as an experiment. The next engineering step is resumable upload so interruption cost falls without weakening server authority over multipart truth.
 
 ## Common diagnosis errors
 
@@ -171,3 +174,5 @@ It also suggests a concrete research agenda:
 - resumable multipart protocols instead of whole-upload restart behavior
 - lower-cost or more selective state persistence for high-part-count transfers
 - operator-facing telemetry that can explain where in the transfer pipeline volatility actually occurred
+
+For the concrete next implementation step, see the [Development Plan](development-plan.md).

@@ -1,6 +1,6 @@
 # 並行チャンク分割アップロード設計
 
-*最終更新: April 11, 2026 at 12:18 PM PDT*
+*最終更新: April 11, 2026 at 4:27 AM PDT*
 
 ## この文書の目的
 
@@ -30,6 +30,7 @@ BurnBox が扱うのは小さな文書だけではありません。
 - part 数が増えるほどリスクが増える
 - 小さいファイルでは健全に見える経路でも、大きいファイルでは脆さが露出する
 - 生の帯域よりも、中途の揺らぎへの耐性のほうが支配的になることがある
+- 現在の reliability 変更後は `4.3 GB / 870 parts` および `11 GB / 2200 parts` までの転送が成功している
 
 ## 採用した方式
 
@@ -85,6 +86,8 @@ BurnBox は極端な最大スループットよりも、運用上の見通しと
 - retry の増幅
 
 そのため BurnBox では、大容量 upload を単純な timeout 問題ではなく、累積信頼性の問題として記述します。
+
+したがって、現在の実装は単なる experiment ではなく、安定した baseline として読むべきです。次の工学的ステップは、multipart truth に対する server authority を保ったまま resumable upload を実装することです。
 
 ## よくある誤診
 
@@ -171,3 +174,5 @@ edge における信頼性は、より速い基盤だけではなく、明示的
 - upload 全体の再開ではなく、multipart 単位での resumable protocol
 - part 数が多い場合の、より低コストな状態永続化
 - どの段で揺らぎが起きたかを説明できる operator-facing telemetry
+
+具体的な次の実装段階は [開発計画](development-plan.md) を参照してください。

@@ -1,6 +1,6 @@
 # Documentation
 
-*Last updated: April 11, 2026 at 12:18 PM PDT*
+*Last updated: April 11, 2026 at 4:21 AM PDT*
 
 This directory contains the public operator and engineering documentation for BurnBox.
 
@@ -13,6 +13,7 @@ The most important engineering theme across these documents is that BurnBox trea
 - [Quickstart](en/quickstart.md)
 - [Deployment](en/deployment.md)
 - [Architecture](en/architecture.md)
+- [Development Plan](en/development-plan.md)
 - [Share Link Delivery Architecture](en/share-link-delivery.md)
 - [Concurrent Chunked Upload Design](en/concurrent-chunked-upload.md)
 - [Troubleshooting](en/troubleshooting.md)
@@ -23,6 +24,7 @@ The most important engineering theme across these documents is that BurnBox trea
 - [クイックスタート](ja/quickstart.md)
 - [デプロイ手順](ja/deployment.md)
 - [アーキテクチャ](ja/architecture.md)
+- [開発計画](ja/development-plan.md)
 - [共有リンク配信アーキテクチャ](ja/share-link-delivery.md)
 - [並行チャンク分割アップロード設計](ja/concurrent-chunked-upload.md)
 - [トラブルシューティング](ja/troubleshooting.md)

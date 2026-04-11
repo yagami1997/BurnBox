@@ -1,6 +1,6 @@
 # Architecture
 
-*Last updated: April 11, 2026 at 12:18 PM PDT*
+*Last updated: April 11, 2026 at 4:27 AM PDT*
 
 ## Overview
 
@@ -14,6 +14,8 @@ BurnBox 2.1.1 has two major architectural layers:
 
 - upload reliability through chunked multipart ingest
 - share-delivery separation through split domains and stable public handles
+
+The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. The next implementation step is resumable upload on top of that baseline.
 
 One practical warning belongs at the architectural level:
 
@@ -52,6 +54,8 @@ Detailed rationale:
 7. The Worker finalizes object assembly and writes the final file record to D1.
 
 This flow is intentionally stateful. The difficulty is not only moving bytes into R2. The difficulty is preserving correct system state across many part requests, retries, and a final commit boundary.
+
+The next planned extension is a resume-status layer so interrupted uploads can continue from durable server-side part truth instead of restarting from part `1`.
 
 ## Share flow
 

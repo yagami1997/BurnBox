@@ -1,6 +1,6 @@
 # Troubleshooting
 
-*Last updated: April 11, 2026 at 12:18 PM PDT*
+*Last updated: April 11, 2026 at 4:27 AM PDT*
 
 ## Upload succeeds but the file does not appear
 
@@ -24,6 +24,13 @@ Check:
 - the Worker route is current
 - the file is not being tested against an outdated cached frontend bundle
 - the upload plan and upload parts schema are present in D1
+
+Current baseline note:
+
+- BurnBox 2.1.1 has already been validated through large multipart transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`
+- if a new failure appears, treat it as a recoverability or environment-specific problem first, not as proof that large uploads are inherently unsupported
+
+The next planned mitigation is resumable upload. See the [Development Plan](development-plan.md).
 
 ## Migration reports duplicate column errors
 

@@ -77,16 +77,21 @@ Publishing it is useful for three reasons:
 - moved multipart assembly fully onto native Workers R2 APIs and removed the extra S3-compatible signing hop
 - clarified retry ownership so transient recovery lives in the client instead of expanding Worker execution paths
 - tightened multipart completion behavior and reduced avoidable per-part coordination overhead
-- validated a stable `419`-part transfer without visible oscillation, reinforcing the cumulative-reliability diagnosis
+- validated stable multipart transfers from `419` parts through `4.3 GB / 870 parts` and `11 GB / 2200 parts`, reinforcing the cumulative-reliability diagnosis
 - rewrote the public docs to explain why large-file edge upload is a stateful systems problem rather than a simple timeout problem
 - established three graduate-level research directions for the project: resumable multipart protocols, cost-aware coordination state, and capability-oriented public distribution
+- established resumable upload as the next engineering baseline to reduce restart cost after interruption
 
 Developer guidance for this release:
 
 - [Concurrent Chunked Upload Design](docs/en/concurrent-chunked-upload.md)
 - [Architecture](docs/en/architecture.md)
 - [Share Link Delivery Architecture](docs/en/share-link-delivery.md)
+- [Development Plan](docs/en/development-plan.md)
 - [Documentation index](docs/README.md)
+
+<details>
+<summary>Older changelog entries</summary>
 
 ### April 10, 2026 · BurnBox 2.1.0 Share-Domain Release · 7:14 PM PDT
 
@@ -97,9 +102,6 @@ Developer guidance for this release:
 - removed the mandatory share landing page from the default flow and restored direct-download behavior
 - fixed cross-device `Copy link` behavior by making active share URLs reconstructable on the server
 - documented Cloudflare DNS, route, and certificate constraints for hostname-style sharing
-
-<details>
-<summary>Older changelog entries</summary>
 
 ### April 9, 2026 · Major Refactor and Chunked Upload Rollout · 5:42 AM PDT
 
@@ -168,8 +170,9 @@ BurnBox's current upload path reflects the lessons above.
 - upload state is persisted so the server can reason about part truth instead of trusting the browser
 - transfer progress and finalization are presented as distinct phases
 - the client owns transient retry behavior, while the Worker keeps the execution path short and legible
+- current testing has validated stable completion through `4.3 GB / 870 parts` and `11 GB / 2200 parts`
 
-This does not mean the upload problem is "solved forever". It means the system is being shaped toward the correct problem statement: cumulative reliability, not only bandwidth or timeout tuning.
+This does not mean the upload problem is "solved forever". It means the system is being shaped toward the correct problem statement: cumulative reliability, not only bandwidth or timeout tuning. The next implementation target is resumable upload so recovery can continue from durable part truth instead of restarting the entire transfer.
 
 ## Technical Significance
 
@@ -271,6 +274,7 @@ npm run dev
   - [Quickstart](docs/en/quickstart.md)
   - [Deployment](docs/en/deployment.md)
   - [Architecture](docs/en/architecture.md)
+  - [Development Plan](docs/en/development-plan.md)
   - [Share Link Delivery Architecture](docs/en/share-link-delivery.md)
   - [Concurrent Chunked Upload Design](docs/en/concurrent-chunked-upload.md)
   - [Troubleshooting](docs/en/troubleshooting.md)
@@ -279,6 +283,7 @@ npm run dev
   - [Quickstart](docs/ja/quickstart.md)
   - [Deployment](docs/ja/deployment.md)
   - [Architecture](docs/ja/architecture.md)
+  - [開発計画](docs/ja/development-plan.md)
   - [Share Link Delivery Architecture](docs/ja/share-link-delivery.md)
   - [Concurrent Chunked Upload Design](docs/ja/concurrent-chunked-upload.md)
   - [Troubleshooting](docs/ja/troubleshooting.md)
@@ -370,6 +375,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 11, 2026 at 12:18 PM PDT</sub>
+<sub>Last updated: April 11, 2026 at 4:27 AM PDT</sub>
 
 </div>

@@ -1,6 +1,6 @@
 # Quickstart
 
-*Last updated: April 11, 2026 at 12:18 PM PDT*
+*Last updated: April 11, 2026 at 4:21 AM PDT*
 
 ## Requirements
 
@@ -86,6 +86,7 @@ Check the main 2.1.1 flow:
 - log in to the workspace
 - upload a test file
 - confirm multipart upload reaches finalization
+- confirm the current baseline can handle large transfers without visible oscillation
 - confirm the file appears in the list
 - create a share
 - confirm the stable link uses the public share domain
@@ -107,3 +108,4 @@ For the design rationale, read:
 
 - [Share Link Delivery Architecture](share-link-delivery.md)
 - [Concurrent Chunked Upload Design](concurrent-chunked-upload.md)
+- [Development Plan](development-plan.md)

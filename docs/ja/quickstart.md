@@ -1,6 +1,6 @@
 # クイックスタート
 
-*最終更新: April 11, 2026 at 12:18 PM PDT*
+*最終更新: April 11, 2026 at 4:21 AM PDT*
 
 ## 要件
 
@@ -86,6 +86,7 @@ npm run dev
 - workspace にログインする
 - テストファイルをアップロードする
 - multipart upload が finalization まで進む
+- 現在の baseline が大容量転送でも目立つ oscillation なく進むことを確認する
 - file list に表示される
 - share を作成する
 - stable link が public share domain を使う
@@ -106,3 +107,4 @@ BurnBox の公開共有リンクには現在 3 つの概念があります。
 
 - [共有リンク配信アーキテクチャ](share-link-delivery.md)
 - [並行チャンク分割アップロード設計](concurrent-chunked-upload.md)
+- [開発計画](development-plan.md)
