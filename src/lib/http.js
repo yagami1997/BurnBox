@@ -70,7 +70,7 @@ function applyDefaultHeaders(headers) {
     headers.set("x-content-type-options", "nosniff");
   }
   if (!headers.has("referrer-policy")) {
-    headers.set("referrer-policy", "same-origin");
+    headers.set("referrer-policy", "no-referrer");
   }
   if (!headers.has("x-frame-options")) {
     headers.set("x-frame-options", "DENY");
@@ -83,6 +83,9 @@ function applyDefaultHeaders(headers) {
   }
   if (!headers.has("strict-transport-security")) {
     headers.set("strict-transport-security", "max-age=63072000; includeSubDomains");
+  }
+  if (!headers.has("permissions-policy")) {
+    headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
   }
 }
 
