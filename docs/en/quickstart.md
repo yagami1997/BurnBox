@@ -37,6 +37,8 @@ Recommended placeholder model:
 
 ## 3. Apply the database schema
 
+Replace `burnbox` below with your actual D1 database name if you did not keep the default.
+
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
@@ -60,6 +62,8 @@ npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
 ```
+
+`SHARE_LINK_SECRET` is mandatory for public downloads. If it is missing, share links will return `503` even if the workspace login still works.
 
 ## 5. Configure local development secrets
 
@@ -92,6 +96,7 @@ Check the main 2.1.1 flow:
 - confirm the stable link uses the public share domain
 - confirm the stable link defaults to `/h/{publicHandle}`
 - open the link and verify direct download
+- if the link returns `503`, confirm `SHARE_LINK_SECRET` is configured on the deployed Worker
 - refresh the workspace from another machine or browser profile
 - confirm `Copy link` still appears for the active share
 - revoke the link and verify it stops working

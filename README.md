@@ -248,10 +248,10 @@ npm install
 4. Apply the schema.
 
 ```bash
-npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
-npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
-npx wrangler d1 execute burnbox --remote --file=./migrations/0003_multipart_uploads.sql
-npx wrangler d1 execute burnbox --remote --file=./migrations/0004_share_public_handle.sql
+npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/0001_initial.sql
+npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/0002_upload_plans.sql
+npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/0003_multipart_uploads.sql
+npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/0004_share_public_handle.sql
 ```
 
 5. Configure production secrets.
@@ -261,6 +261,8 @@ npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
 ```
+
+`SHARE_LINK_SECRET` is required. Share creation may still work without it, but public download links will fail until it is configured.
 
 6. Start remote development.
 

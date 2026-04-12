@@ -37,6 +37,8 @@ npm install
 
 ## 3. Database schema の適用
 
+以下の `burnbox` は、既定名を使っていない場合は自分の D1 database 名に置き換えてください。
+
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
@@ -60,6 +62,8 @@ npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
 ```
+
+`SHARE_LINK_SECRET` は公開 download に必須です。これがないと、workspace login が正常でも share link は `503` を返します。
 
 ## 5. ローカル開発用 secrets の設定
 
@@ -92,6 +96,7 @@ npm run dev
 - stable link が public share domain を使う
 - stable link が `/h/{publicHandle}` になる
 - 開くと直接 download が始まる
+- `503` になる場合は、デプロイ済み Worker に `SHARE_LINK_SECRET` が入っているか確認する
 - 別ブラウザまたは別端末から見ても `Copy link` が出る
 - revoke してリンクが止まることを確認する
 

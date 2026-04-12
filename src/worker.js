@@ -1,6 +1,6 @@
 import { recordAuditLog } from "./lib/audit.js";
 import { completeUpload, createUploadPlan, deleteFile, uploadFilePart } from "./lib/files.js";
-import { html, json, noContent, readJson, timingSafeEqual } from "./lib/http.js";
+import { html, json, noContent, readJson, timingSafeEqual, withDefaultHeaders } from "./lib/http.js";
 import { renderAppPage } from "./lib/layout.js";
 import { listFiles } from "./lib/repository.js";
 import { renderPublicHostUnavailablePage, renderShareErrorPage } from "./lib/share-pages.js";
@@ -418,14 +418,15 @@ async function route(request, env) {
         via: locator.type,
         publicHandle: result.share.public_handle || null,
         host,
+        clientIp: request.headers.get("cf-connecting-ip") ?? null,
+        clientCountry: request.cf?.country ?? null,
       },
     });
 
-    const headers = new Headers();
+    const headers = new Headers(withDefaultHeaders().headers);
     headers.set("content-type", result.share.content_type || "application/octet-stream");
     headers.set("content-disposition", contentDisposition(result.share.filename));
     headers.set("cache-control", "private, no-store");
-    headers.set("x-content-type-options", "nosniff");
 
     return new Response(result.object.body, {
       status: 200,
@@ -526,8 +527,9 @@ async function validateShareDownloadSignature(env, locatorType, locatorValue, ts
     return false;
   }
 
-  const age = Math.abs(Date.now() - ts);
-  if (age > 5 * 60 * 1000) {
+  const now = Date.now();
+  const age = now - ts;
+  if (age < -30_000 || age > 5 * 60 * 1000) {
     return false;
   }
 
@@ -536,9 +538,9 @@ async function validateShareDownloadSignature(env, locatorType, locatorValue, ts
 }
 
 async function signShareDownload(env, locatorValue, ts) {
-  const secret = String(env.SHARE_LINK_SECRET || env.SESSION_SECRET || "");
+  const secret = String(env.SHARE_LINK_SECRET || "");
   if (!secret) {
-    throw new Error("Worker secret configuration is incomplete");
+    throw new Error("SHARE_LINK_SECRET is required before the Worker can serve downloads");
   }
 
   const key = await crypto.subtle.importKey(

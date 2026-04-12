@@ -72,4 +72,25 @@ function applyDefaultHeaders(headers) {
   if (!headers.has("referrer-policy")) {
     headers.set("referrer-policy", "same-origin");
   }
+  if (!headers.has("x-frame-options")) {
+    headers.set("x-frame-options", "DENY");
+  }
+  if (!headers.has("content-security-policy")) {
+    headers.set(
+      "content-security-policy",
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'",
+    );
+  }
+  if (!headers.has("strict-transport-security")) {
+    headers.set("strict-transport-security", "max-age=63072000; includeSubDomains");
+  }
+}
+
+export function withDefaultHeaders(init = {}) {
+  const headers = new Headers(init.headers || {});
+  applyDefaultHeaders(headers);
+  return {
+    ...init,
+    headers,
+  };
 }

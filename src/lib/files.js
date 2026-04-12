@@ -9,7 +9,7 @@ export async function createUploadPlan(env, input) {
   const fileId = crypto.randomUUID();
   const now = new Date();
   const createdAt = now.toISOString();
-  const storageKey = buildStorageKey(now, fileId, input.filename);
+  const storageKey = buildStorageKey(now, fileId);
   const multipartUploadId = await createMultipartUpload(env, storageKey, input.contentType);
   const totalParts = Math.max(1, Math.ceil(Number(input.size || 0) / CHUNK_SIZE));
 
@@ -262,17 +262,11 @@ async function getUploadPlan(env, fileId) {
   }
 }
 
-function buildStorageKey(now, fileId, filename) {
+function buildStorageKey(now, fileId) {
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const safeFilename = filename
-    .normalize("NFKD")
-    .replace(/[^\w.\-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 120) || "file";
 
-  return `archive/${year}/${month}/${fileId}-${safeFilename}`;
+  return `archive/${year}/${month}/${fileId}`;
 }
 
 async function createMultipartUpload(env, storageKey, contentType) {

@@ -8,6 +8,21 @@ All public examples use placeholder domains only. Do not replace them with perso
 
 The most important engineering theme across these documents is that BurnBox treats large-file upload as a cumulative reliability problem across browser, Worker, R2, and D1 boundaries rather than as a simple request-size problem.
 
+## Start Here
+
+For a new fork or the first production deployment, read in this order:
+
+1. Quickstart
+2. Deployment
+3. Troubleshooting
+
+That path covers:
+
+- `wrangler.toml` preparation
+- D1 migration order
+- required secrets including `SHARE_LINK_SECRET`
+- post-deploy validation for upload and public share links
+
 ## English
 
 - [Quickstart](en/quickstart.md)

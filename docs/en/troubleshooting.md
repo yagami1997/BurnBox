@@ -46,6 +46,19 @@ Check:
 - the share payload is valid
 - `SHARE_BASE_URL` is configured
 
+## Share link returns `503`
+
+This usually means the public download path is not fully configured, even if workspace login still works.
+
+Check:
+
+- `SHARE_LINK_SECRET` exists on the deployed Worker
+- the public share host is routed to the current Worker version
+- `ALLOWED_SHARE_HOSTS` includes the exact public share host
+- `SHARE_BASE_URL` points to that same public share host
+
+If you recently hardened a deployment that used to fall back to `SESSION_SECRET`, missing `SHARE_LINK_SECRET` is the first thing to verify.
+
 ## An active share exists but `Copy link` does not appear
 
 Check:

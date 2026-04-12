@@ -137,10 +137,13 @@ Recommended separation:
 - use `SHARE_LINK_SECRET` for public download-signature logic
 
 That keeps admin auth and public delivery signatures from sharing the same secret material.
+`SHARE_LINK_SECRET` is not optional. If it is missing, public share downloads will fail with `503` even though admin login may still appear healthy.
 
 ## Database migrations
 
 Apply the schema before the first production deployment:
+
+Replace `burnbox` below with your actual D1 database name if you changed it in `wrangler.toml`.
 
 ```bash
 npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
@@ -172,9 +175,10 @@ Validate in this order:
 5. Confirm the returned stable URL uses the public share domain.
 6. Confirm the stable URL defaults to `/h/{publicHandle}`.
 7. Open the link and verify it downloads directly.
-8. Revoke the share and verify the link fails.
-9. Refresh the workspace from a different machine and confirm `Copy link` still appears for the active share.
-10. Confirm the public share domain does not expose `/api/*` or the workspace root.
+8. If the link returns `503`, check that `SHARE_LINK_SECRET` is configured on the deployed Worker.
+9. Revoke the share and verify the link fails.
+10. Refresh the workspace from a different machine and confirm `Copy link` still appears for the active share.
+11. Confirm the public share domain does not expose `/api/*` or the workspace root.
 
 ## Randomized privacy-oriented DNS naming
 
