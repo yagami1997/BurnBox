@@ -366,10 +366,15 @@ The project's research thesis is that edge reliability is usually not blocked by
 
 ## Notes
 
-- Public Git-tracked documentation uses placeholder domains only.
-- Do not publish personal domains, bucket names, account identifiers, or route patterns.
-- Default stable sharing uses `/h/{publicHandle}` because it is reconstructable across devices and sessions.
-- Hostname-style sharing remains an optional deployment mode and may require additional certificate products.
+- BurnBox currently feels less like a "small upload app" and more like a compact study in state ownership, recovery semantics, and operator-legible edge control.
+- The hardest question is no longer whether large files can move through the edge at all. The harder question is how to preserve clear truth after interruption, partial completion, retry, and recovery.
+- Recent work in this repository reinforced a practical lesson: reliability failures are often state-model failures first, not bandwidth failures and not timeout-tuning failures.
+- The public-share model also became clearer through iteration. Stable identifiers and secret capability material should not be collapsed into one concept if the system is expected to remain reconstructable, revocable, and understandable.
+- The next meaningful engineering step is resumable upload, but the larger research interest is broader: cost-aware coordination, operator-visible recovery, and small-system designs that remain auditable under stress.
+- The documentation is intentionally written so that a careful human operator or an AI coding assistant can carry a fresh fork through deployment without guessing the project structure.
+- Public Git-tracked documentation uses placeholder domains only. Do not publish personal domains, bucket names, account identifiers, or route patterns.
+- Default stable sharing uses `/h/{publicHandle}` because it is reconstructable across devices and sessions. Hostname-style sharing remains optional and may require additional certificate products.
+- The Japanese documentation is for friends at Kyoto University. Thank you for the support.
 
 ## License
 
