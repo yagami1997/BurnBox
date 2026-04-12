@@ -389,6 +389,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 11, 2026 at 4:27 AM PDT</sub>
+<sub>Last updated: April 11, 2026 at 9:29 PM PDT</sub>
 
 </div>
