@@ -81,6 +81,7 @@ Publishing it is useful for three reasons:
 - rewrote the public docs to explain why large-file edge upload is a stateful systems problem rather than a simple timeout problem
 - established three graduate-level research directions for the project: resumable multipart protocols, cost-aware coordination state, and capability-oriented public distribution
 - established resumable upload as the next engineering baseline to reduce restart cost after interruption
+- refined public-facing failure interaction so external entry points now present tighter and more consistent error behavior under invalid or unavailable requests
 
 Developer guidance for this release:
 

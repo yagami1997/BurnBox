@@ -20,6 +20,9 @@ export default {
       return await route(request, env);
     } catch (error) {
       console.error(error);
+      if (isPublicFacingHost(request, env)) {
+        return html(renderPublicHostUnavailablePage({ status: 503 }), { status: 503 });
+      }
       return json(
         { error: "Internal server error" },
         { status: 500 },
@@ -31,23 +34,43 @@ export default {
 async function route(request, env) {
   const url = new URL(request.url);
   const host = (request.headers.get("host") || url.hostname || "").toLowerCase();
+  const appHosts = parseHostList(env.ALLOWED_APP_HOSTS);
   const shareHosts = parseHostList(env.ALLOWED_SHARE_HOSTS);
   const shareSubdomainBaseDomain = getShareSubdomainBaseDomain(env, url);
   const sharePublicHandle = extractSharePublicHandleFromHost(host, shareSubdomainBaseDomain);
   const isShareSubdomainHost = Boolean(sharePublicHandle);
   const sharePublicHandlePath = !isShareSubdomainHost ? extractSharePublicHandleFromPath(url.pathname, { download: false }) : "";
   const sharePublicHandleDownloadPath = !isShareSubdomainHost ? extractSharePublicHandleFromPath(url.pathname, { download: true }) : "";
+  const isKnownAppHost = appHosts.has(host);
   const isKnownShareHost = shareHosts.has(host);
+  const isPublicHost = isKnownShareHost || isShareSubdomainHost;
   const isApiPath = url.pathname.startsWith("/api/");
   const isAppSurfacePath = request.method === "GET" && url.pathname === "/";
+  const isShareRoute = url.pathname === "/h"
+    || url.pathname === "/h/"
+    || url.pathname.startsWith("/h/")
+    || url.pathname.startsWith("/s/")
+    || url.pathname === "/download";
   const session = await readSession(request, env);
 
-  if ((isKnownShareHost || isShareSubdomainHost) && isApiPath) {
+  if (isPublicHost && isApiPath) {
     return notFoundForRequest(request);
   }
 
+  if (!isKnownAppHost && !isPublicHost) {
+    return renderPublicFallbackForRequest(request, 404);
+  }
+
   if (isKnownShareHost && isAppSurfacePath && !isShareSubdomainHost) {
-    return html(renderPublicHostUnavailablePage(), { status: 503 });
+    return html(renderPublicHostUnavailablePage({ status: 503 }), { status: 503 });
+  }
+
+  if (isPublicHost && request.method === "GET" && isMalformedSharePublicHandlePath(url.pathname)) {
+    return html(renderPublicHostUnavailablePage({ status: 404 }), { status: 404 });
+  }
+
+  if (!isPublicHost && isShareRoute) {
+    return notFoundForRequest(request);
   }
 
   if (request.method === "GET" && url.pathname === "/") {
@@ -368,7 +391,7 @@ async function route(request, env) {
         ? { type: "public_handle", value: sharePublicHandleDownloadPath }
         : { type: "token", value: extractShareToken(url.pathname, { download: true }) };
     if (!locator.value) {
-      return html("<h1>Invalid share link</h1>", { status: 400 });
+      return html(renderPublicHostUnavailablePage({ status: 404 }), { status: 404 });
     }
 
     const ts = Number(url.searchParams.get("ts"));
@@ -421,7 +444,7 @@ async function route(request, env) {
         ? { type: "public_handle", value: sharePublicHandlePath }
         : { type: "token", value: extractShareToken(url.pathname, { download: false }) };
     if (!locator.value) {
-      return html("<h1>Invalid share link</h1>", { status: 400 });
+      return html(renderPublicHostUnavailablePage({ status: 404 }), { status: 404 });
     }
 
     const result = locator.type === "public_handle"
@@ -437,6 +460,10 @@ async function route(request, env) {
       : `/s/${encodeURIComponent(locator.value)}/download`;
     const downloadUrl = `${downloadPath}?ts=${encodeURIComponent(downloadParams.ts)}&sig=${encodeURIComponent(downloadParams.sig)}`;
     return Response.redirect(new URL(downloadUrl, url), 302);
+  }
+
+  if (isPublicHost) {
+    return html(renderPublicHostUnavailablePage({ status: 404 }), { status: 404 });
   }
 
   return json({ error: "Not found" }, { status: 404 });
@@ -458,6 +485,14 @@ function parseHostList(value) {
   );
 }
 
+function isPublicFacingHost(request, env) {
+  const url = new URL(request.url);
+  const host = (request.headers.get("host") || url.hostname || "").toLowerCase();
+  const shareHosts = parseHostList(env.ALLOWED_SHARE_HOSTS);
+  const shareSubdomainBaseDomain = getShareSubdomainBaseDomain(env, url);
+  return shareHosts.has(host) || Boolean(extractSharePublicHandleFromHost(host, shareSubdomainBaseDomain));
+}
+
 function notFoundForRequest(request) {
   if ((request.headers.get("accept") || "").includes("text/html")) {
     return html("<h1>Not found</h1>", { status: 404 });
@@ -470,6 +505,14 @@ function renderShareError(status) {
   return html(renderShareErrorPage(status), {
     status: status === "missing" ? 404 : status === "missing_object" || status === "unavailable" ? 503 : 410,
   });
+}
+
+function renderPublicFallbackForRequest(request, status = 404) {
+  if (request.method === "GET" || request.method === "HEAD") {
+    return html(renderPublicHostUnavailablePage({ status }), { status });
+  }
+
+  return json({ error: "Not found" }, { status: 404 });
 }
 
 async function createShareDownloadParams(env, locatorType, locatorValue) {
@@ -578,6 +621,18 @@ function extractSharePublicHandleFromPath(pathname, options = {}) {
   }
 
   return remainder.split("/")[0].trim();
+}
+
+function isMalformedSharePublicHandlePath(pathname) {
+  if (pathname === "/h" || pathname === "/h/") {
+    return true;
+  }
+
+  if (!pathname.startsWith("/h/")) {
+    return false;
+  }
+
+  return !/^\/h\/[^/]+(?:\/download)?\/?$/.test(pathname);
 }
 
 function encodeBase64Url(bytes) {

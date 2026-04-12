@@ -154,133 +154,221 @@ export function renderSharePage({ share, downloadUrl }) {
 
 export function renderShareErrorPage(status) {
   const copy = {
-    missing: { title: "Share not found", description: "This link does not exist." },
-    revoked: { title: "Share revoked", description: "The owner has closed this access window." },
-    expired: { title: "Share expired", description: "This temporary access window has expired." },
-    depleted: { title: "Download limit reached", description: "This link has no remaining downloads." },
-    missing_object: { title: "File unavailable", description: "The storage backend is missing the object for this share." },
-    unavailable: { title: "Share unavailable", description: "This share cannot be used right now. Please try again." },
-  }[status] || { title: "Unavailable", description: "This share cannot be used right now." };
+    missing: {
+      statusCode: 404,
+      title: "Invalid link",
+      description: "The requested resource could not be located. Verify the address and try again.",
+      detail: "The link is invalid or no longer resolves to an available resource.",
+    },
+    revoked: {
+      statusCode: 410,
+      title: "Resource expired",
+      description: "The requested resource is no longer available.",
+      detail: "This link has expired or can no longer be used.",
+    },
+    expired: {
+      statusCode: 410,
+      title: "Resource expired",
+      description: "The requested resource is no longer available.",
+      detail: "This link has expired or can no longer be used.",
+    },
+    depleted: {
+      statusCode: 410,
+      title: "Resource expired",
+      description: "The requested resource is no longer available.",
+      detail: "This link has expired or can no longer be used.",
+    },
+    missing_object: {
+      statusCode: 503,
+      title: "Service unavailable",
+      description: "The requested resource is temporarily unavailable.",
+      detail: "The origin resource is not currently available. Try again later.",
+    },
+    unavailable: {
+      statusCode: 503,
+      title: "Service unavailable",
+      description: "The requested resource is temporarily unavailable.",
+      detail: "The request could not be completed at this time. Try again later.",
+    },
+  }[status] || {
+    statusCode: 503,
+    title: "Service unavailable",
+    description: "The requested resource is temporarily unavailable.",
+    detail: "The request could not be completed at this time. Try again later.",
+  };
 
-  return `<!doctype html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>${escapeHtml(copy.title)}</title>
-        <style>
-          :root {
-            --ink: #1d150f;
-            --muted: #6f5d4a;
-            --line: rgba(50, 32, 16, 0.12);
-          }
-          * { box-sizing: border-box; }
-          body {
-            margin: 0;
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            background:
-              radial-gradient(circle at top left, rgba(197, 75, 26, 0.18), transparent 30%),
-              radial-gradient(circle at bottom right, rgba(79, 98, 84, 0.16), transparent 30%),
-              linear-gradient(180deg, #ece4d5, #f7f1e7);
-            color: var(--ink);
-            font-family: Georgia, "Times New Roman", serif;
-            padding: 16px;
-          }
-          article {
-            width: min(680px, calc(100% - 12px));
-            padding: 30px;
-            border-radius: 32px;
-            background:
-              linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(247, 240, 230, 0.94));
-            border: 1px solid var(--line);
-            box-shadow: 0 28px 90px rgba(79,46,17,.14);
-          }
-          .eyebrow {
-            display: inline-flex;
-            padding: 9px 14px;
-            border-radius: 999px;
-            border: 1px solid var(--line);
-            color: var(--muted);
-            letter-spacing: .12em;
-            text-transform: uppercase;
-            font-size: .78rem;
-          }
-          h1 {
-            margin: 22px 0 12px;
-            font-size: clamp(2.2rem, 8vw, 4.6rem);
-            line-height: .9;
-            letter-spacing: -.05em;
-          }
-          p {
-            margin: 0;
-            color: var(--muted);
-            font-size: 1.06rem;
-            line-height: 1.45;
-            max-width: 520px;
-          }
-        </style>
-      </head>
-      <body>
-        <article>
-          <div class="eyebrow">Secure share</div>
-          <h1>${escapeHtml(copy.title)}</h1>
-          <p>${escapeHtml(copy.description)}</p>
-        </article>
-      </body>
-    </html>`;
+  return renderInfrastructureErrorPage(copy);
 }
 
-export function renderPublicHostUnavailablePage() {
+export function renderPublicHostUnavailablePage(options = {}) {
+  const statusCode = Number.isFinite(options.status) ? Number(options.status) : 503;
+  const copy = statusCode === 404
+    ? {
+        statusCode: 404,
+        title: "Not Found",
+        description: "The requested resource could not be located.",
+        detail: "The address may be invalid, incomplete, or no longer available.",
+      }
+    : {
+        statusCode: 503,
+        title: "Fatal server error",
+        description: "The server is unavailable due to a fatal internal failure.",
+        detail: "A critical service error caused the endpoint to go offline. Please try again later.",
+      };
+
+  return renderInfrastructureErrorPage(copy);
+}
+
+function renderInfrastructureErrorPage({ statusCode, title, description, detail }) {
+  const accent = statusCode >= 500 ? "#f38020" : statusCode === 410 ? "#d97706" : "#f38020";
   return `<!doctype html>
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Service unavailable</title>
+        <title>${escapeHtml(title)}</title>
         <style>
           * { box-sizing: border-box; }
           body {
             margin: 0;
             min-height: 100vh;
+            background: #ffffff;
+            color: #222222;
+            font-family: Arial, Helvetica, sans-serif;
+          }
+          .shell {
+            min-height: 100vh;
             display: grid;
             place-items: center;
-            background: #ffffff;
-            color: #1f2937;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            padding: 24px;
+            padding: 28px 20px;
           }
           main {
-            width: min(720px, 100%);
+            width: min(860px, 100%);
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+          }
+          .bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 20px;
+            border-bottom: 1px solid #d9d9d9;
+            background: #f7f7f7;
+            font-size: 0.94rem;
+            color: #5a5a5a;
+          }
+          .bar strong {
+            color: #2b2b2b;
+            font-weight: 600;
+          }
+          .body {
+            padding: 34px 34px 30px;
+          }
+          .status-code {
+            display: inline-block;
+            margin-bottom: 14px;
+            color: ${accent};
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
           }
           h1 {
-            margin: 0 0 16px;
-            font-size: 2.4rem;
+            margin: 0 0 12px;
+            font-size: clamp(2.2rem, 7vw, 4.2rem);
             font-weight: 600;
-            letter-spacing: -0.03em;
+            letter-spacing: -0.04em;
           }
           p {
             margin: 0;
-            color: #4b5563;
-            font-size: 1rem;
-            line-height: 1.6;
-            max-width: 560px;
+            color: #4c4c4c;
+            font-size: 1.03rem;
+            line-height: 1.62;
+            max-width: 640px;
           }
-          .code {
-            display: inline-block;
-            margin-top: 18px;
-            color: #6b7280;
-            font-size: 0.92rem;
+          .detail {
+            margin-top: 14px;
+            color: #6a6a6a;
+            font-size: 0.97rem;
+            max-width: 660px;
+          }
+          .meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-top: 30px;
+          }
+          .meta-card {
+            padding: 16px 18px;
+            border: 1px solid #e2e2e2;
+            border-radius: 6px;
+            background: #fafafa;
+          }
+          .meta-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #7a7a7a;
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+          }
+          .meta-value {
+            display: block;
+            color: #202020;
+            font-size: 1rem;
+            line-height: 1.45;
+          }
+          .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px 18px;
+            border-top: 1px solid #e2e2e2;
+            background: #fafafa;
+            color: #7a7a7a;
+            font-size: 0.9rem;
+          }
+          .brand {
+            color: #f38020;
+            font-weight: 700;
+            letter-spacing: 0.02em;
           }
         </style>
       </head>
       <body>
-        <main>
-          <h1>Service unavailable</h1>
-          <p>The requested endpoint is temporarily unavailable. Please try again later.</p>
-          <span class="code">Error 503</span>
-        </main>
+        <div class="shell">
+          <main>
+            <div class="bar">
+              <strong>Request failed</strong>
+              <span>HTTP ${escapeHtml(String(statusCode))}</span>
+            </div>
+            <div class="body">
+              <div class="status-code">Error ${escapeHtml(String(statusCode))}</div>
+              <h1>${escapeHtml(title)}</h1>
+              <p>${escapeHtml(description)}</p>
+              <p class="detail">${escapeHtml(detail)}</p>
+              <div class="meta">
+                <div class="meta-card">
+                  <span class="meta-label">Status</span>
+                  <span class="meta-value">${escapeHtml(String(statusCode))}</span>
+                </div>
+                <div class="meta-card">
+                  <span class="meta-label">Classification</span>
+                  <span class="meta-value">${escapeHtml(title)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="footer">
+              <span>Performance & security by <span class="brand">Cloudflare</span></span>
+              <span>Reference ${escapeHtml(String(statusCode))}</span>
+            </div>
+          </main>
+        </div>
       </body>
     </html>`;
 }
