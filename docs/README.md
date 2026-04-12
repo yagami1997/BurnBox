@@ -15,6 +15,7 @@ For a new fork or the first production deployment, read in this order:
 1. Quickstart
 2. Deployment
 3. Troubleshooting
+4. AI Deployment Handoff, if you want an assistant to execute the process with you
 
 That path covers:
 
@@ -26,6 +27,7 @@ That path covers:
 ## English
 
 - [Quickstart](en/quickstart.md)
+- [AI Deployment Handoff](en/ai-deployment-handoff.md)
 - [Deployment](en/deployment.md)
 - [Architecture](en/architecture.md)
 - [Development Plan](en/development-plan.md)
@@ -36,6 +38,7 @@ That path covers:
 
 ## Japanese
 
+- [AI デプロイ引き継ぎ](ja/ai-deployment-handoff.md)
 - [クイックスタート](ja/quickstart.md)
 - [デプロイ手順](ja/deployment.md)
 - [アーキテクチャ](ja/architecture.md)

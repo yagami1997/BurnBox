@@ -235,6 +235,10 @@ Read the technical notes here:
 
 ## Quick Start
 
+If you want Claude, GPT, Codex, or another coding assistant to carry out the setup with you, use the dedicated handoff file first:
+
+- [AI Deployment Handoff](docs/en/ai-deployment-handoff.md)
+
 1. Install dependencies.
 
 ```bash
@@ -274,6 +278,7 @@ npm run dev
 
 - [Documentation index](docs/README.md)
 - English
+  - [AI Deployment Handoff](docs/en/ai-deployment-handoff.md)
   - [Quickstart](docs/en/quickstart.md)
   - [Deployment](docs/en/deployment.md)
   - [Architecture](docs/en/architecture.md)
@@ -283,6 +288,7 @@ npm run dev
   - [Troubleshooting](docs/en/troubleshooting.md)
   - [Repository Boundaries](docs/en/repository-boundaries.md)
 - Japanese
+  - [AI Deployment Handoff (Japanese)](docs/ja/ai-deployment-handoff.md)
   - [Quickstart](docs/ja/quickstart.md)
   - [Deployment](docs/ja/deployment.md)
   - [Architecture](docs/ja/architecture.md)
