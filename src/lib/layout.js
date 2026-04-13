@@ -205,6 +205,11 @@ export function renderAppPage({ files, owner = null }) {
         color: rgba(222, 235, 248, 0.78);
       }
 
+      .hero-note.dark .account-meta-row span {
+        color: rgba(222, 235, 248, 0.78);
+        opacity: 1;
+      }
+
       .hero-note.dark strong,
       .hero-note.dark p {
         color: rgba(255, 255, 255, 0.94);
