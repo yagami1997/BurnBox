@@ -399,15 +399,17 @@ The project's research thesis is that edge reliability is usually not blocked by
 
 ## Notes
 
-- BurnBox currently feels less like a "small upload app" and more like a compact study in state ownership, recovery semantics, and operator-legible edge control.
-- The hardest question is no longer whether large files can move through the edge at all. The harder question is how to preserve clear truth after interruption, partial completion, retry, and recovery.
-- Recent work in this repository reinforced a practical lesson: reliability failures are often state-model failures first, not bandwidth failures and not timeout-tuning failures.
-- The public-share model also became clearer through iteration. Stable identifiers and secret capability material should not be collapsed into one concept if the system is expected to remain reconstructable, revocable, and understandable.
-- The next meaningful engineering step is resumable upload, but the larger research interest is broader: cost-aware coordination, operator-visible recovery, and small-system designs that remain auditable under stress.
-- The documentation is intentionally written so that a careful human operator or an AI coding assistant can carry a fresh fork through deployment without guessing the project structure.
-- Public Git-tracked documentation uses placeholder domains only. Do not publish personal domains, bucket names, account identifiers, or route patterns.
-- Default stable sharing uses `/h/{publicHandle}` because it is reconstructable across devices and sessions. Hostname-style sharing remains optional and may require additional certificate products.
-- The Japanese documentation is for friends at Kyoto University. Thank you for the support.
+Every version of BurnBox has answered a different question. The first question was whether large files could move through the edge at all. They could, but not without a lesson: reliability at scale is not a bandwidth problem. It is a state problem. A system that cannot articulate what it knows after a failure cannot recover from one.
+
+The second question was about identity. A share link is a capability — bounded, revocable, and attached to a specific act of trust between an operator and a recipient. When that distinction collapsed, as it does in systems where the same material serves as both a stable identifier and a secret, the share system lost something: the ability to say clearly who still has access and why. Separating `public_handle` from the token hash was not a refactor. It was a clarification of what kind of thing a link is.
+
+The third question was about ownership. A deployment password written into an environment variable is not an owner. It is a shared secret with no memory, no recovery, and no face. Moving authentication into the product — claim, upgrade, password rotation, backup codes, session control — was an attempt to give the workspace something closer to a person at the other end of it.
+
+What remains is the hardest question of all: how to return gracefully from the middle of things. An interrupted upload is not just a failed request. It is a system in a partially-committed state. The next step is to make that state legible and recoverable without forcing a restart from zero.
+
+The documentation is written for any careful reader — human operator or AI coding assistant — who wants to carry a fresh fork into production without guessing. Placeholder domains are used throughout; keep personal infrastructure out of public version history. Hostname-style sharing is opt-in and requires explicit certificate management.
+
+The Japanese documentation exists because good ideas travel better when they arrive in a familiar language. To the friends at Kyoto University who made that feel worth doing — thank you.
 
 ## License
 
@@ -422,6 +424,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 12, 2026 at 5:16 PM PDT</sub>
+<sub>Last updated: April 12, 2026 at 6:47 PM PDT</sub>
 
 </div>
