@@ -1,11 +1,12 @@
 # Security Policy
 
-*Last updated: April 12, 2026 at 8:39 PM PDT*
+*Last updated: April 13, 2026 at 01:49 AM PDT*
 
 ## Supported scope
 
 Security issues are relevant for:
 
+- owner-account claim, upgrade, login, and recovery flows
 - session handling
 - share-token generation and validation
 - R2 upload and download flows
@@ -40,7 +41,9 @@ Those notices must be sent to the operator of the specific deployment that store
 
 BurnBox follows several baseline controls:
 
-- admin access is session-protected
+- owner workspace access is session-protected
+- owner password material is stored as a hash, not as plaintext
+- owner-session invalidation is controlled through session-version checks
 - share tokens are stored as hashes
 - downloads are delivered with `Cache-Control: private, no-store`
 - file durability is separated from temporary access capability
