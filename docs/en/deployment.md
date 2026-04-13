@@ -1,10 +1,10 @@
 # Deployment
 
-*Last updated: April 11, 2026 at 9:29 PM PDT*
+*Last updated: April 12, 2026 at 5:16 PM PDT*
 
 ## Overview
 
-BurnBox 2.1.1 is designed around a split-domain deployment model:
+BurnBox 2.2.0 is designed around a split-domain deployment model plus an owner-account auth flow:
 
 - a private workspace domain for authenticated administration, such as `https://console.example.com`
 - a public share domain for external file delivery, such as `https://relay.example.net`
@@ -14,6 +14,12 @@ This split exists for privacy and operational clarity:
 - the public link should not have to expose the workspace hostname
 - the public surface should not expose admin routes
 - share routing and workspace routing can evolve independently
+
+BurnBox 2.2.0 also changes the operational ownership model:
+
+- new deployments are claimed inside the product
+- legacy deployments can upgrade from `ADMIN_PASSWORD` to an owner account
+- recovery email, password rotation, backup codes, and session reset now live inside the workspace
 
 ## Required Cloudflare resources
 
@@ -127,17 +133,24 @@ If you are not enabling hostname-style sharing yet, omit `SHARE_SUBDOMAIN_BASE_D
 
 Set the following production secrets:
 
-- `ADMIN_PASSWORD`
 - `SESSION_SECRET`
 - `SHARE_LINK_SECRET`
+- `CLAIM_KEY` if you want to provide the one-time claim token manually
 
 Recommended separation:
 
-- use `SESSION_SECRET` for admin session signing
+- use `SESSION_SECRET` for owner session signing
 - use `SHARE_LINK_SECRET` for public download-signature logic
+- use `CLAIM_KEY` only as a one-time setup key for first claim when log-generated claim codes are not practical
 
 That keeps admin auth and public delivery signatures from sharing the same secret material.
 `SHARE_LINK_SECRET` is not optional. If it is missing, public share downloads will fail with `503` even though admin login may still appear healthy.
+`CLAIM_KEY` is not a long-lived login password.
+
+Legacy-upgrade note:
+
+- keep `ADMIN_PASSWORD` in place until the existing workspace completes `Upgrade your BurnBox security`
+- after the upgrade succeeds and owner login has been verified, the deployment can remove the legacy password secret
 
 ## Database migrations
 
@@ -150,6 +163,7 @@ npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0003_multipart_uploads.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0004_share_public_handle.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0005_owner_auth.sql
 ```
 
 Migration notes:
@@ -168,17 +182,22 @@ npm run deploy
 
 Validate in this order:
 
-1. Log in to the workspace domain.
-2. Upload one or more files.
-3. Confirm chunked upload reaches finalization and the files appear in the registry.
-4. Create a share.
-5. Confirm the returned stable URL uses the public share domain.
-6. Confirm the stable URL defaults to `/h/{publicHandle}`.
-7. Open the link and verify it downloads directly.
-8. If the link returns `503`, check that `SHARE_LINK_SECRET` is configured on the deployed Worker.
-9. Revoke the share and verify the link fails.
-10. Refresh the workspace from a different machine and confirm `Copy link` still appears for the active share.
-11. Confirm the public share domain does not expose `/api/*` or the workspace root.
+1. Open the workspace domain.
+2. If the deployment is new, complete `Claim your BurnBox`.
+3. If the deployment is an upgrade from the legacy password model, complete `Upgrade your BurnBox security`.
+4. Confirm owner login works.
+5. Confirm `Recovery email` can be added from the workspace account card.
+6. Confirm `Change password`, `Generate Backup Codes`, and `Sign Out Other Devices` work from the workspace account controls.
+7. Upload one or more files.
+8. Confirm chunked upload reaches finalization and the files appear in the registry.
+9. Create a share.
+10. Confirm the returned stable URL uses the public share domain.
+11. Confirm the stable URL defaults to `/h/{publicHandle}`.
+12. Open the link and verify it downloads directly.
+13. If the link returns `503`, check that `SHARE_LINK_SECRET` is configured on the deployed Worker.
+14. Revoke the share and verify the link fails.
+15. Refresh the workspace from a different machine and confirm `Copy link` still appears for the active share.
+16. Confirm the public share domain does not expose `/api/*` or the workspace root.
 
 ## Randomized privacy-oriented DNS naming
 

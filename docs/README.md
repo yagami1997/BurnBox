@@ -1,6 +1,6 @@
 # Documentation
 
-*Last updated: April 11, 2026 at 9:29 PM PDT*
+*Last updated: April 12, 2026 at 5:16 PM PDT*
 
 This directory contains the public operator and engineering documentation for BurnBox.
 
@@ -21,8 +21,9 @@ That path covers:
 
 - `wrangler.toml` preparation
 - D1 migration order
-- required secrets including `SHARE_LINK_SECRET`
-- post-deploy validation for upload and public share links
+- required secrets including `SESSION_SECRET`, `SHARE_LINK_SECRET`, and one-time claim setup
+- first-run owner claim or legacy-upgrade flow
+- post-deploy validation for owner sign-in, recovery controls, upload, and public share links
 
 ## English
 
@@ -31,6 +32,7 @@ That path covers:
 - [Deployment](en/deployment.md)
 - [Architecture](en/architecture.md)
 - [Development Plan](en/development-plan.md)
+- [Release Checklist](en/release-checklist.md)
 - [Share Link Delivery Architecture](en/share-link-delivery.md)
 - [Concurrent Chunked Upload Design](en/concurrent-chunked-upload.md)
 - [Troubleshooting](en/troubleshooting.md)
@@ -43,6 +45,7 @@ That path covers:
 - [デプロイ手順](ja/deployment.md)
 - [アーキテクチャ](ja/architecture.md)
 - [開発計画](ja/development-plan.md)
+- [リリース前チェックリスト](ja/release-checklist.md)
 - [共有リンク配信アーキテクチャ](ja/share-link-delivery.md)
 - [並行チャンク分割アップロード設計](ja/concurrent-chunked-upload.md)
 - [トラブルシューティング](ja/troubleshooting.md)

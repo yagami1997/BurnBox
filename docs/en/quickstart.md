@@ -1,6 +1,6 @@
 # Quickstart
 
-*Last updated: April 11, 2026 at 9:29 PM PDT*
+*Last updated: April 12, 2026 at 5:16 PM PDT*
 
 ## Requirements
 
@@ -44,6 +44,7 @@ npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0003_multipart_uploads.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0004_share_public_handle.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0005_owner_auth.sql
 ```
 
 For local D1 emulation you may also want:
@@ -53,26 +54,28 @@ npx wrangler d1 execute burnbox --local --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --local --file=./migrations/0002_upload_plans.sql
 npx wrangler d1 execute burnbox --local --file=./migrations/0003_multipart_uploads.sql
 npx wrangler d1 execute burnbox --local --file=./migrations/0004_share_public_handle.sql
+npx wrangler d1 execute burnbox --local --file=./migrations/0005_owner_auth.sql
 ```
 
 ## 4. Configure production secrets
 
 ```bash
-npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
+npx wrangler secret put CLAIM_KEY
 ```
 
 `SHARE_LINK_SECRET` is mandatory for public downloads. If it is missing, share links will return `503` even if the workspace login still works.
+`CLAIM_KEY` is only for the initial owner-claim path. It should not be treated as the long-lived workspace password.
 
 ## 5. Configure local development secrets
 
 Create `.dev.vars` in the project root:
 
 ```env
-ADMIN_PASSWORD=your-local-admin-password
 SESSION_SECRET=your-long-random-session-secret
 SHARE_LINK_SECRET=your-long-random-share-link-secret
+CLAIM_KEY=your-one-time-local-claim-key
 ```
 
 This is required for `wrangler dev --remote`, because local development still needs Worker secrets.
@@ -85,9 +88,14 @@ npm run dev
 
 ## 7. Verify the system
 
-Check the main 2.1.1 flow:
+Check the main 2.2.0 flow:
 
-- log in to the workspace
+- open the workspace
+- if this is a new deployment, complete `Claim your BurnBox`
+- if this is an upgraded deployment, complete `Upgrade your BurnBox security`
+- confirm owner sign-in works
+- confirm the workspace account card can add a recovery email
+- confirm `Change password`, `Generate Backup Codes`, and `Sign Out Other Devices` work
 - upload a test file
 - confirm multipart upload reaches finalization
 - confirm the current baseline can handle large transfers without visible oscillation
@@ -112,5 +120,6 @@ BurnBox currently uses three public-share concepts:
 For the design rationale, read:
 
 - [Share Link Delivery Architecture](share-link-delivery.md)
+- [Architecture](architecture.md)
 - [Concurrent Chunked Upload Design](concurrent-chunked-upload.md)
 - [Development Plan](development-plan.md)

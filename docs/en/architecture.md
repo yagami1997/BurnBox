@@ -1,6 +1,6 @@
 # Architecture
 
-*Last updated: April 11, 2026 at 9:29 PM PDT*
+*Last updated: April 12, 2026 at 5:16 PM PDT*
 
 ## Overview
 
@@ -10,12 +10,13 @@ BurnBox is a compact Cloudflare-native control plane:
 - R2 stores file objects
 - D1 stores file metadata, upload state, share state, and audit logs
 
-BurnBox 2.1.1 has two major architectural layers:
+BurnBox 2.2.0 has three major architectural layers:
 
 - upload reliability through chunked multipart ingest
 - share-delivery separation through split domains and stable public handles
+- workspace account security through owner claim, upgrade flow, and in-product session control
 
-The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. The next implementation step is resumable upload on top of that baseline.
+The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.2.0 now ships owner-claim auth, legacy upgrade flow, and in-product account security on top of that baseline. The next implementation step is resumable upload.
 
 One practical warning belongs at the architectural level:
 
@@ -43,9 +44,19 @@ Detailed rationale:
 
 - [Share Link Delivery Architecture](share-link-delivery.md)
 
+### 2.2.0: owner claim and account-security transition
+
+The third major shift is moving workspace authentication from a deployment-password pattern toward a product-level owner account:
+
+- new deployments enter an owner-claim flow
+- existing deployments can migrate through an upgrade flow
+- password change, recovery, and device/session controls move into the workspace
+- the long-lived workspace password no longer belongs in deployment configuration
+- recovery email and backup codes give the workspace a product-level recovery model instead of a deployment-secret fallback
+
 ## Upload flow
 
-1. The admin workspace calls `POST /api/files/init-upload`.
+1. The owner workspace calls `POST /api/files/init-upload`.
 2. The Worker creates an upload plan in D1.
 3. The browser slices the file into 5 MiB chunks.
 4. Each chunk is sent through the Worker upload channel.
@@ -59,7 +70,7 @@ The next planned extension is a resume-status layer so interrupted uploads can c
 
 ## Share flow
 
-1. The admin workspace creates a share record for a file.
+1. The owner workspace creates a share record for a file.
 2. The Worker generates:
    - a secret token, stored only as a SHA-256 hash
    - a stable `public_handle`, stored in D1
@@ -80,6 +91,28 @@ The next planned extension is a resume-status layer so interrupted uploads can c
 - split domains reduce public exposure of the admin surface
 - the internal signed download hop keeps a control point without forcing a public landing page
 - legacy token links remain valid so existing issued links do not break
+
+## Auth flow
+
+1. A request arrives on the workspace host.
+2. The Worker determines the auth state:
+   - `unclaimed`
+   - `upgrade_required`
+   - `active`
+3. New deployments are routed into owner claim.
+4. Legacy deployments can authenticate once with the old deployment password and then enter the upgrade flow.
+5. Active deployments authenticate against the owner account and session state.
+6. Password change, recovery, and sign-out-all invalidate prior sessions through a server-controlled session version.
+
+## Auth hardening notes
+
+BurnBox 2.2.0 also adds security controls around the new auth layer:
+
+- failed owner sign-ins record a generic invalid-credentials reason
+- legacy upgrade login is rate-limited
+- recovery-code reset is rate-limited and uses generic failure responses
+- claim-token use is atomic with owner-account creation
+- auth/session payloads never expose password hashes
 
 ## Host separation model
 

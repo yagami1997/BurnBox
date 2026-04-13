@@ -1,6 +1,6 @@
 # AI デプロイ引き継ぎ
 
-*最終更新: April 11, 2026 at 9:29 PM PDT*
+*最終更新: April 12, 2026 at 5:16 PM PDT*
 
 ## 目的
 
@@ -17,12 +17,13 @@ AI は次の順で支援または実行するべきです。
 3. Worker 名、D1 database 名、D1 database id、R2 bucket 名、workspace hostname、public share hostname を確認する
 4. D1 migration を順番どおりに適用する
 5. 必須 Worker secrets を設定する
-   - `ADMIN_PASSWORD`
    - `SESSION_SECRET`
    - `SHARE_LINK_SECRET`
+   - manual claim code を使う場合だけ `CLAIM_KEY`
 6. Worker を deploy する
-7. workspace login、upload、share 作成、share download を検証する
-8. public link が失敗した場合は、まず `SHARE_LINK_SECRET`、`SHARE_BASE_URL`、`ALLOWED_SHARE_HOSTS`、route 設定を確認する
+7. owner claim または upgrade flow、upload、share 作成、share download を検証する
+8. workspace account controls、つまり recovery email、password change、backup-code generation、logout、`Sign Out Other Devices` を検証する
+9. public link が失敗した場合は、まず `SHARE_LINK_SECRET`、`SHARE_BASE_URL`、`ALLOWED_SHARE_HOSTS`、route 設定を確認する
 
 ## 重要な制約
 
@@ -43,9 +44,11 @@ AI に渡す前に、次の値を用意しておくとスムーズです。
 - R2 bucket name
 - workspace hostname
 - public share hostname
-- admin password
+- owner email
 - 強い session secret
 - 強い share-link secret
+- log-generated claim code を使わない場合だけ manual claim key
+- fresh deployment か、legacy `ADMIN_PASSWORD` からの upgrade か
 
 ## AI へのコピペ用プロンプト
 
@@ -71,11 +74,12 @@ Rules:
 - Do not skip SHARE_LINK_SECRET.
 - Warn me before any force push, destructive action, or secret overwrite.
 - After deployment, verify:
-  1. workspace login works
-  2. file upload works
-  3. share creation works
-  4. the stable link uses the public share host
-  5. the share link downloads directly
+  1. owner claim or upgrade works
+  2. recovery email and password change work
+  3. file upload works
+  4. share creation works
+  5. the stable link uses the public share host
+  6. the share link downloads directly
 
 If anything fails, debug in this order:
 - wrangler.toml values
@@ -92,10 +96,12 @@ Keep a short running checklist of what is done and what is still blocked.
 次のすべてが満たされるまでは、デプロイ完了と見なさないでください。
 
 - `wrangler.toml` が intended Cloudflare resources と一致している
-- 4 本の D1 migrations が順番どおりに適用されている
-- Worker に `ADMIN_PASSWORD`、`SESSION_SECRET`、`SHARE_LINK_SECRET` が存在する
+- 5 本の D1 migrations が順番どおりに適用されている
+- Worker に `SESSION_SECRET` と `SHARE_LINK_SECRET` が存在する
+- manual claim code を使うなら `CLAIM_KEY` も存在する
 - Worker が workspace host と public share host の両方に deploy されている
-- workspace login が成功する
+- owner claim または upgrade が成功する
+- workspace account controls も成功する
 - 少なくとも 1 回 upload が完了する
 - 少なくとも 1 本の share link が正常に download できる
 

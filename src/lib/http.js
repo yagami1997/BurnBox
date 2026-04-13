@@ -52,14 +52,17 @@ export function getCookies(request) {
 }
 
 export function timingSafeEqual(a, b) {
-  const maxLength = Math.max(a.length, b.length);
+  const encoder = new TextEncoder();
+  const aBytes = encoder.encode(String(a || ""));
+  const bBytes = encoder.encode(String(b || ""));
+  const maxLength = Math.max(aBytes.length, bBytes.length);
 
   let mismatch = 0;
   for (let index = 0; index < maxLength; index += 1) {
-    mismatch |= (a.charCodeAt(index) || 0) ^ (b.charCodeAt(index) || 0);
+    mismatch |= (aBytes[index] || 0) ^ (bBytes[index] || 0);
   }
 
-  return mismatch === 0 && a.length === b.length;
+  return mismatch === 0 && aBytes.length === bBytes.length;
 }
 
 function applyDefaultHeaders(headers) {

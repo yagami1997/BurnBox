@@ -1,6 +1,6 @@
 # Troubleshooting
 
-*Last updated: April 11, 2026 at 9:29 PM PDT*
+*Last updated: April 12, 2026 at 5:16 PM PDT*
 
 ## Upload succeeds but the file does not appear
 
@@ -27,7 +27,7 @@ Check:
 
 Current baseline note:
 
-- BurnBox 2.1.1 has already been validated through large multipart transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`
+- BurnBox 2.2.0 inherits the validated large multipart baseline through `4.3 GB / 870 parts` and `11 GB / 2200 parts`
 - if a new failure appears, treat it as a recoverability or environment-specific problem first, not as proof that large uploads are inherently unsupported
 
 The next planned mitigation is resumable upload. See the [Development Plan](development-plan.md).
@@ -68,7 +68,7 @@ Check:
 - the workspace file list is being loaded from the current deployment
 - the active share has not expired or been exhausted
 
-BurnBox 2.1.1 reconstructs active links from `public_handle`. It should not depend on browser-local cache anymore.
+BurnBox 2.2.0 still reconstructs active links from `public_handle`. It should not depend on browser-local cache anymore.
 
 ## Public share link opens the wrong host
 

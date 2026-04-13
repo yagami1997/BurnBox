@@ -1,0 +1,59 @@
+# BurnBox 2.2.0 Release Checklist
+
+*Last updated: April 12, 2026 at 5:16 PM PDT*
+
+Use this checklist before promoting BurnBox 2.2.0 to a shared environment.
+
+## Environment
+
+- Confirm `SESSION_SECRET` is set.
+- Confirm `SHARE_LINK_SECRET` is set.
+- Confirm `APP_BASE_URL`, `SHARE_BASE_URL`, `ALLOWED_APP_HOSTS`, and `ALLOWED_SHARE_HOSTS` match the intended deployment.
+- If you are not using a log-generated claim code, confirm `CLAIM_KEY` is set as a one-time setup secret.
+
+## Database
+
+- Apply migrations in order, including `migrations/0005_owner_auth.sql`.
+- Confirm the D1 database contains the owner-auth tables: `owner_account`, `claim_tokens`, `recovery_codes`, and `auth_events`.
+- Confirm legacy deployments still retain the existing file and share tables.
+
+## New Deployment Flow
+
+- Open the workspace before any account exists.
+- Confirm the app shows `Claim your BurnBox`.
+- Complete claim with owner email, password, confirmation, and claim code.
+- Confirm the response returns recovery codes once and the claim token cannot be reused.
+- Confirm reloading the workspace shows the authenticated owner workspace instead of the claim form.
+
+## Upgrade Flow
+
+- Start from a deployment that still uses the legacy `ADMIN_PASSWORD` path.
+- Confirm the app shows the upgrade login entry rather than the owner login form.
+- Sign in with the legacy password and confirm the app advances to `Upgrade your BurnBox security`.
+- Complete upgrade with owner email, password, confirmation, and recovery-code generation.
+- Confirm subsequent logins use owner email plus password, not the legacy password.
+
+## Recovery and Session Controls
+
+- Confirm `Reset with recovery code` accepts a valid owner email and unused recovery code.
+- Confirm a used recovery code cannot be reused.
+- Confirm five invalid recovery attempts trigger a temporary lock.
+- Confirm `Recovery email` can be added or removed from the workspace account card.
+- Confirm `Change password` rotates the session version and invalidates older sessions.
+- Confirm `Sign Out Other Devices` invalidates other active sessions while preserving the current session.
+- Confirm `Regenerate recovery codes` replaces the current set and returns a fresh list once.
+
+## Share and Workspace Regression
+
+- Upload a file and confirm multipart upload still completes.
+- Create a share link and confirm the public URL resolves from the share domain.
+- Confirm download limits and expiration still work.
+- Delete a file and confirm its share links are revoked.
+
+## Security Regression
+
+- Confirm failed owner logins log a generic `invalid_credentials` reason.
+- Confirm legacy upgrade logins return `429` after repeated failures.
+- Confirm recovery reset returns a generic invalid-details error for bad email or bad code.
+- Confirm auth/session responses never include `passwordHash` or `passwordAlgo`.
+- Confirm no public route renders the private workspace without a valid owner session.

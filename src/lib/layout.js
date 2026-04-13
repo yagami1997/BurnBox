@@ -7,8 +7,17 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-export function renderAppPage({ authenticated, files }) {
+export function renderAppPage({ files, owner = null }) {
   const filesJson = JSON.stringify(files).replaceAll("<", "\\u003c");
+  const safeOwner = owner
+    ? {
+        email: owner.email || "",
+        recoveryEmail: owner.recoveryEmail || "",
+        lastLoginAt: owner.lastLoginAt || "",
+        lastLoginIp: owner.lastLoginIp || "",
+      }
+    : null;
+  const ownerJson = JSON.stringify(safeOwner).replaceAll("<", "\\u003c");
   const faviconHref = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23143252' d='M34 4c2 7 7 12 12 17 6 6 9 13 9 20 0 13-9 23-23 23S9 54 9 41c0-9 5-16 11-22 5-5 10-9 12-17 0-2 1-2 2 0z'/%3E%3Cpath fill='%23ffffff' d='M35 14c1 5 5 8 8 11 4 4 6 8 6 13 0 8-6 14-14 14s-14-6-14-14c0-5 2-9 6-13 3-3 6-6 8-11z'/%3E%3Cpath fill='%23c23a2b' d='M35 27c1 3 3 5 5 7 2 2 3 4 3 7 0 5-4 9-9 9s-9-4-9-9c0-4 2-6 4-8 3-2 5-4 6-6z'/%3E%3C/svg%3E";
 
   return `<!doctype html>
@@ -130,9 +139,9 @@ export function renderAppPage({ authenticated, files }) {
 
       .hero-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.72fr);
+        grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.72fr);
         gap: 28px;
-        align-items: end;
+        align-items: center;
       }
 
       .hero-copy {
@@ -172,11 +181,16 @@ export function renderAppPage({ authenticated, files }) {
       .hero-side {
         display: grid;
         gap: 14px;
+        width: min(100%, 520px);
+        justify-self: end;
+        align-self: start;
       }
 
       .hero-note {
+        width: 100%;
+        min-width: 0;
         padding: 18px;
-        border-radius: 20px;
+        border-radius: 24px;
         background: rgba(255, 255, 255, 0.6);
         border: 1px solid rgba(20, 50, 82, 0.08);
       }
@@ -218,6 +232,211 @@ export function renderAppPage({ authenticated, files }) {
       .hero-note p {
         margin-top: 10px;
         font-size: 0.95rem;
+      }
+
+      .account-note {
+        display: grid;
+        gap: 10px;
+        position: relative;
+        min-height: 336px;
+        overflow: hidden;
+      }
+
+      .account-meta {
+        display: grid;
+        gap: 10px;
+      }
+
+      .account-meta-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 0.92rem;
+        min-width: 0;
+      }
+
+      .hero-note.light .account-meta-row {
+        border-top-color: rgba(20, 50, 82, 0.1);
+      }
+
+      .account-meta-row span {
+        color: inherit;
+        opacity: 0.78;
+      }
+
+      .account-meta-row strong {
+        margin: 0;
+        font-size: 0.92rem;
+        text-align: right;
+        min-width: 0;
+        max-width: 58%;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      .account-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .account-actions button {
+        flex: 0 0 auto;
+        min-width: 0;
+        padding: 9px 13px;
+        border-radius: 14px;
+        font-size: 0.92rem;
+      }
+
+      .meta-value {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .account-actions button.is-success {
+        background: rgba(255, 255, 255, 0.18);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .inline-note {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .hero-note.dark .inline-note {
+        color: rgba(222, 235, 248, 0.74);
+      }
+
+      .codes-inline {
+        display: none;
+        min-height: 112px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.84rem;
+      }
+
+      .codes-inline.active {
+        display: block;
+      }
+
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .card-head > div {
+        min-width: 0;
+      }
+
+      .account-email-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .account-email-row strong {
+        margin: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .small-ghost {
+        color: white;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-size: 0.84rem;
+      }
+
+      .small-ghost.light {
+        color: var(--navy);
+        background: rgba(255, 255, 255, 0.88);
+        border-color: rgba(20, 50, 82, 0.12);
+      }
+
+      .account-panel {
+        position: absolute;
+        inset: 0;
+        display: none;
+        gap: 10px;
+        align-content: start;
+        padding: 16px 18px;
+        border-radius: inherit;
+        background: linear-gradient(180deg, rgba(20, 50, 82, 0.98), rgba(29, 67, 107, 0.96));
+        z-index: 2;
+        overflow: hidden;
+      }
+
+      .account-panel.active {
+        display: grid;
+      }
+
+      .account-panel .field {
+        gap: 5px;
+        max-width: 100%;
+      }
+
+      .account-panel .field label {
+        color: rgba(222, 235, 248, 0.86);
+        font-size: 0.76rem;
+      }
+
+      .account-panel input {
+        background: rgba(255, 255, 255, 0.94);
+        padding: 10px 12px;
+        border-radius: 12px;
+        min-height: 42px;
+        box-shadow: 0 6px 18px rgba(20, 50, 82, 0.08);
+      }
+
+      .account-panel-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .account-panel-title strong {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+
+      .account-panel .field-row {
+        gap: 10px;
+      }
+
+      .account-panel .primary,
+      .account-panel .secondary {
+        width: fit-content;
+        min-width: 0;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+      }
+
+      .panel-copy {
+        margin: -2px 0 2px;
+        max-width: 440px;
+        color: rgba(222, 235, 248, 0.78);
+        font-size: 0.76rem;
+        line-height: 1.4;
       }
 
       .layout {
@@ -283,6 +502,7 @@ export function renderAppPage({ authenticated, files }) {
       }
 
       input[type="password"],
+      input[type="email"],
       input[type="text"],
       input[type="number"],
       input[type="file"],
@@ -769,6 +989,19 @@ export function renderAppPage({ authenticated, files }) {
           grid-template-columns: 1fr;
         }
 
+        .hero-side {
+          width: 100%;
+          justify-self: stretch;
+        }
+
+        .account-meta-row {
+          align-items: start;
+        }
+
+        .account-meta-row strong {
+          max-width: 52%;
+        }
+
         .upload-strip-grid,
         .upload-inline-fields {
           grid-template-columns: 1fr;
@@ -837,23 +1070,93 @@ export function renderAppPage({ authenticated, files }) {
             <p>Upload into your own R2 bucket, manage the archive from a private desk, and create share windows that expire, deplete, or close on command.</p>
           </div>
           <aside class="hero-side">
-            <div class="hero-note dark">
-              <span class="hero-note-label">Storage model</span>
-              <strong>Long-lived archive in R2.</strong>
-              <p>The file stays in your bucket. What changes is who can reach it, for how long, and how many times.</p>
-            </div>
-            <div class="hero-note light">
-              <span class="hero-note-label">Access model</span>
-              <strong>Temporary links with explicit limits.</strong>
-              <p>Create a link, set the window, cap the usage, and revoke it the moment the job is done.</p>
+            <div class="hero-note dark account-note">
+              <div class="card-head">
+                <div>
+                  <span class="hero-note-label">Owner account</span>
+                  <div class="account-email-row">
+                    <strong>${escapeHtml(safeOwner?.email || "Unknown owner")}</strong>
+                    <button class="small-ghost" type="button" id="logoutButton">Logout</button>
+                  </div>
+                  <p>Workspace identity and recovery controls stay inside BurnBox.</p>
+                </div>
+              </div>
+              <div class="account-meta">
+                <div class="account-meta-row">
+                  <span>Recovery email</span>
+                  <strong class="meta-value">
+                    <span id="recoveryEmailDisplay">${escapeHtml(safeOwner?.recoveryEmail || "No recovery email added")}</span>
+                    <button class="small-ghost light" type="button" id="toggleRecoveryEmailForm">${safeOwner?.recoveryEmail ? "Edit" : "Add"}</button>
+                  </strong>
+                </div>
+                <div class="account-meta-row">
+                  <span>Last login</span>
+                  <strong id="lastLoginDisplay" data-iso="${escapeHtml(safeOwner?.lastLoginAt || "")}">${escapeHtml(safeOwner?.lastLoginAt || "Signed in during this session")}</strong>
+                </div>
+              </div>
+              <div class="account-actions">
+                <button class="ghost" type="button" id="togglePasswordForm">Change password</button>
+                <button class="ghost" type="button" id="signOutAllButton">Sign Out Other Devices</button>
+                <button class="ghost" type="button" id="toggleRecoveryCodes">Generate Backup Codes</button>
+              </div>
+              <p class="inline-note">Use backup codes only as an emergency fallback until email recovery is enabled.</p>
+              <form class="account-panel" id="changePasswordPanel">
+                <div class="account-panel-title">
+                  <strong>Password update</strong>
+                  <button class="small-ghost" type="button" id="closePasswordForm">Close</button>
+                </div>
+                <p class="panel-copy">Set a new password for this workspace. Other devices will be asked to sign in again after the change.</p>
+                <div class="field">
+                  <label for="currentPassword">Current password</label>
+                  <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" required />
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="newPassword">New password</label>
+                    <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" required />
+                  </div>
+                  <div class="field">
+                    <label for="confirmNewPassword">Confirm new password</label>
+                    <input id="confirmNewPassword" name="confirmNewPassword" type="password" autocomplete="new-password" required />
+                  </div>
+                </div>
+                <button class="primary" type="submit">Save new password</button>
+              </form>
+              <form class="account-panel" id="recoveryEmailPanel">
+                <div class="account-panel-title">
+                  <strong>Recovery email</strong>
+                  <button class="small-ghost" type="button" id="closeRecoveryEmailForm">Close</button>
+                </div>
+                <p class="panel-copy">Add an email address for future account recovery. Leave it blank if you do not want to save one yet.</p>
+                <div class="field">
+                  <label for="recoveryEmailInput">Recovery email</label>
+                  <input id="recoveryEmailInput" name="recoveryEmail" type="email" autocomplete="email" value="${escapeHtml(safeOwner?.recoveryEmail || "")}" placeholder="name@example.com" />
+                </div>
+                <div class="field">
+                  <label for="recoveryEmailPassword">Current password</label>
+                  <input id="recoveryEmailPassword" name="currentPassword" type="password" autocomplete="current-password" required />
+                </div>
+                <button class="secondary" type="submit">Save recovery email</button>
+              </form>
+              <form class="account-panel" id="recoveryCodesPanel">
+                <div class="account-panel-title">
+                  <strong>Generate backup codes</strong>
+                  <button class="small-ghost" type="button" id="closeRecoveryCodesForm">Close</button>
+                </div>
+                <p class="panel-copy">Create a fresh backup-code set for emergency access. Generating a new set replaces the current one immediately.</p>
+                <div class="field">
+                  <label for="recoveryCodesPassword">Current password</label>
+                  <input id="recoveryCodesPassword" name="currentPassword" type="password" autocomplete="current-password" required />
+                </div>
+                <button class="secondary" type="submit">Generate new backup codes</button>
+                <textarea class="codes-inline" id="recoveryCodesOutputPanel" readonly placeholder="Fresh backup codes will appear here once generated."></textarea>
+              </form>
             </div>
           </aside>
         </div>
       </section>
 
-      ${
-        authenticated
-          ? `<section class="layout app">
+      <section class="layout app">
               <section class="panel upload-strip">
                 <div class="upload-strip-grid">
                   <div class="upload-strip-head">
@@ -905,7 +1208,6 @@ export function renderAppPage({ authenticated, files }) {
                   </div>
                   <div class="toolbar-actions">
                     <button class="ghost" type="button" id="refreshButton">Refresh</button>
-                    <button class="secondary" type="button" id="logoutButton">Logout</button>
                   </div>
                 </div>
 
@@ -963,35 +1265,7 @@ export function renderAppPage({ authenticated, files }) {
                   <div id="filesContainer"></div>
                 </div>
               </section>
-            </section>`
-          : `<section class="layout auth">
-              <section class="panel">
-                <h2>Admin Login</h2>
-                <p>One private control surface. Public guest upload and token sprawl are gone from this build.</p>
-                <form class="stack" id="loginForm" style="margin-top:22px;">
-                  <div class="field">
-                    <label for="password">Password</label>
-                    <input id="password" name="password" type="password" autocomplete="current-password" required />
-                  </div>
-                  <button class="primary" type="submit">Enter Workspace</button>
-                </form>
-              </section>
-
-              <section class="panel cool">
-                <h2>Scope</h2>
-                <p>BurnBox 2.0 is a private R2 entrance with temporary share control. The source file stays; the access window expires.</p>
-                <div class="status" id="statusBanner" style="margin-top:20px;">
-                  <div class="status-main" id="statusText">Use the admin password to unlock the desk.</div>
-                  <div class="status-sub" id="statusSubtext">Signed session, direct R2 upload, D1-backed share controls.</div>
-                </div>
-                <div class="stats">
-                  <div><span>Public upload</span><strong>No</strong></div>
-                  <div><span>Persistence</span><strong>Long-term in R2</strong></div>
-                  <div><span>Share policy</span><strong>Expire, limit, revoke</strong></div>
-                </div>
-              </section>
-            </section>`
-      }
+            </section>
     </main>
 
     <footer class="site-footer">
@@ -1001,8 +1275,9 @@ export function renderAppPage({ authenticated, files }) {
 
     <script>
       const boot = {
-        authenticated: ${authenticated ? "true" : "false"},
-        files: ${filesJson}
+        authenticated: true,
+        files: ${filesJson},
+        owner: ${ownerJson}
       };
       let currentFiles = Array.isArray(boot.files) ? [...boot.files] : [];
       const shareLinkStorageKey = "burnbox_share_links_v1";
@@ -1430,14 +1705,112 @@ export function renderAppPage({ authenticated, files }) {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
 
-      if (boot.authenticated) {
+      {
         renderFiles(currentFiles);
         setStatus("Workspace ready.", false, \`\${currentFiles.length} file(s) currently in the registry.\`);
+
+        const lastLoginDisplay = document.getElementById("lastLoginDisplay");
+        if (lastLoginDisplay?.dataset.iso) {
+          const raw = lastLoginDisplay.dataset.iso;
+          const value = new Date(raw);
+          if (!Number.isNaN(value.getTime())) {
+            const pad = (part) => String(part).padStart(2, "0");
+            const year = value.getFullYear();
+            const month = pad(value.getMonth() + 1);
+            const day = pad(value.getDate());
+            const hours = pad(value.getHours());
+            const minutes = pad(value.getMinutes());
+            const offsetMinutes = -value.getTimezoneOffset();
+            const sign = offsetMinutes >= 0 ? "+" : "-";
+            const absOffset = Math.abs(offsetMinutes);
+            const offsetHours = pad(Math.floor(absOffset / 60));
+            const offsetRemainder = pad(absOffset % 60);
+            lastLoginDisplay.textContent = "Signed in on "
+              + year
+              + "-"
+              + month
+              + "-"
+              + day
+              + " at "
+              + hours
+              + ":"
+              + minutes
+              + " (UTC"
+              + sign
+              + offsetHours
+              + ":"
+              + offsetRemainder
+              + ")";
+          }
+        }
 
         document.getElementById("refreshButton")?.addEventListener("click", refreshFiles);
         document.getElementById("logoutButton")?.addEventListener("click", async () => {
           await fetch("/api/auth/logout", { method: "POST" });
           location.reload();
+        });
+        const signOutAllButton = document.getElementById("signOutAllButton");
+        signOutAllButton?.addEventListener("click", async () => {
+          const originalLabel = signOutAllButton.textContent;
+          signOutAllButton.disabled = true;
+          setStatus("Resetting device sessions...", false, "Other signed-in devices will need to authenticate again.");
+          const response = await fetch("/api/auth/sign-out-all", { method: "POST" });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            signOutAllButton.disabled = false;
+            setStatus(data.error || "Failed to reset device sessions.", true);
+            return;
+          }
+          signOutAllButton.textContent = "Other Devices Signed Out";
+          signOutAllButton.classList.add("is-success");
+          setStatus("Other devices signed out.", false, "This current workspace stayed active with the latest session.");
+          window.setTimeout(() => {
+            signOutAllButton.textContent = originalLabel;
+            signOutAllButton.classList.remove("is-success");
+            signOutAllButton.disabled = false;
+          }, 2200);
+        });
+        const changePasswordForm = document.getElementById("changePasswordPanel");
+        const recoveryEmailForm = document.getElementById("recoveryEmailPanel");
+        const recoveryCodesForm = document.getElementById("recoveryCodesPanel");
+        const recoveryEmailDisplay = document.getElementById("recoveryEmailDisplay");
+        const toggleRecoveryEmailFormButton = document.getElementById("toggleRecoveryEmailForm");
+        const recoveryEmailInput = document.getElementById("recoveryEmailInput");
+        const closePanels = () => {
+          changePasswordForm?.classList.remove("active");
+          recoveryEmailForm?.classList.remove("active");
+          recoveryCodesForm?.classList.remove("active");
+        };
+        document.getElementById("toggleRecoveryCodes")?.addEventListener("click", () => {
+          const willOpen = !recoveryCodesForm?.classList.contains("active");
+          closePanels();
+          if (willOpen) {
+            recoveryCodesForm?.classList.add("active");
+          }
+        });
+        document.getElementById("toggleRecoveryEmailForm")?.addEventListener("click", () => {
+          const willOpen = !recoveryEmailForm?.classList.contains("active");
+          closePanels();
+          if (willOpen) {
+            recoveryEmailForm?.classList.add("active");
+            recoveryEmailInput?.focus();
+          }
+        });
+        document.getElementById("closeRecoveryEmailForm")?.addEventListener("click", () => {
+          recoveryEmailForm?.classList.remove("active");
+        });
+        document.getElementById("closeRecoveryCodesForm")?.addEventListener("click", () => {
+          recoveryCodesForm?.classList.remove("active");
+        });
+        document.getElementById("togglePasswordForm")?.addEventListener("click", () => {
+          const willOpen = !changePasswordForm?.classList.contains("active");
+          closePanels();
+          if (willOpen) {
+            changePasswordForm?.classList.add("active");
+          }
+        });
+        document.getElementById("closePasswordForm")?.addEventListener("click", () => {
+          changePasswordForm?.classList.remove("active");
         });
         document.getElementById("shareComposerClose")?.addEventListener("click", closeShareComposer);
         document.getElementById("copyShareButton")?.addEventListener("click", copyShareLink);
@@ -1483,6 +1856,95 @@ export function renderAppPage({ authenticated, files }) {
             setStatus("Share created.", false, "Clipboard access was blocked. Copy the link manually below.");
           }
           await refreshFiles();
+        });
+
+        document.getElementById("changePasswordPanel")?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          if (form.newPassword.value !== form.confirmNewPassword.value) {
+            setStatus("Passwords do not match.", true, "Use the same new password in both fields.");
+            return;
+          }
+
+          setStatus("Updating password...", false, "Saving the new owner password and refreshing the current session.");
+          const response = await fetch("/api/auth/change-password", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              currentPassword: form.currentPassword.value,
+              newPassword: form.newPassword.value,
+              confirmPassword: form.confirmNewPassword.value,
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            setStatus(data.error || "Failed to update password.", true);
+            return;
+          }
+
+          form.reset();
+          closePanels();
+          setStatus("Password updated.", false, "Other sessions now need to sign in again.");
+        });
+
+        document.getElementById("recoveryEmailPanel")?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const nextRecoveryEmail = form.recoveryEmail.value.trim();
+          setStatus("Saving recovery email...", false, nextRecoveryEmail
+            ? "Updating the recovery email stored for this workspace."
+            : "Removing the stored recovery email from this workspace.");
+          const response = await fetch("/api/auth/recovery-email", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              recoveryEmail: nextRecoveryEmail,
+              currentPassword: form.currentPassword.value,
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            setStatus(data.error || "Failed to update recovery email.", true);
+            return;
+          }
+
+          if (recoveryEmailDisplay) {
+            recoveryEmailDisplay.textContent = data.owner?.recoveryEmail || "No recovery email added";
+          }
+          if (toggleRecoveryEmailFormButton) {
+            toggleRecoveryEmailFormButton.textContent = data.owner?.recoveryEmail ? "Edit" : "Add";
+          }
+          form.currentPassword.value = "";
+          closePanels();
+          setStatus("Recovery email updated.", false, data.owner?.recoveryEmail
+            ? "The workspace now has a recovery email on file."
+            : "No recovery email is stored for this workspace.");
+        });
+
+        document.getElementById("recoveryCodesPanel")?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          setStatus("Regenerating recovery codes...", false, "Replacing the current fallback code set.");
+          const response = await fetch("/api/auth/recovery-codes/regenerate", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              currentPassword: form.currentPassword.value,
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            setStatus(data.error || "Failed to regenerate recovery codes.", true);
+            return;
+          }
+
+          form.reset();
+          const output = document.getElementById("recoveryCodesOutputPanel");
+          if (output) {
+            output.value = Array.isArray(data.recoveryCodes) ? data.recoveryCodes.join("\\n") : "";
+            output.classList.add("active");
+          }
+          setStatus("Recovery codes refreshed.", false, "Save the new set before closing the workspace.");
         });
 
         document.getElementById("uploadForm")?.addEventListener("submit", async (event) => {
@@ -1560,25 +2022,6 @@ export function renderAppPage({ authenticated, files }) {
           setTimeout(() => {
             clearUploadProgress();
           }, 1800);
-        });
-      } else {
-        document.getElementById("loginForm")?.addEventListener("submit", async (event) => {
-          event.preventDefault();
-          const password = event.currentTarget.password.value;
-          setStatus("Signing in...", false, "Verifying the admin password and issuing a signed session.");
-          const response = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ password })
-          });
-
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            setStatus(data.error || "Login failed.", true);
-            return;
-          }
-
-          location.reload();
         });
       }
     </script>

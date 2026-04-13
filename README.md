@@ -72,6 +72,27 @@ Publishing it is useful for three reasons:
 
 ## Changelog
 
+### April 12, 2026 · BurnBox 2.2.0 Owner Account and Security Upgrade · 5:16 PM PDT
+
+- ships owner-account authentication inside the product instead of relying on a long-lived deployment password
+- adds `Claim your BurnBox` for first-run setup and `Upgrade your BurnBox security` for legacy `ADMIN_PASSWORD` deployments
+- moves password change, recovery-email management, backup-code regeneration, logout, and device-session control into the workspace
+- hardens auth behavior with generic invalid-credential logging, recovery lockouts, legacy-login throttling, claim-token atomicity, and password-hash sanitization
+- keeps public share delivery, multipart upload, and stable `/h/{publicHandle}` links intact while upgrading the workspace auth model
+- refreshes the public README and operator docs so deployment, migration, upgrade, and recovery behavior all describe the shipped 2.2.0 system
+
+Developer guidance for this release:
+
+- [Quickstart](docs/en/quickstart.md)
+- [Deployment](docs/en/deployment.md)
+- [Architecture](docs/en/architecture.md)
+- [Development Plan](docs/en/development-plan.md)
+- [Release Checklist](docs/en/release-checklist.md)
+- [Documentation index](docs/README.md)
+
+<details>
+<summary>Older changelog entries</summary>
+
 ### April 11, 2026 · BurnBox 2.1.1 Reliability and Research Release · 12:18 PM PDT
 
 - moved multipart assembly fully onto native Workers R2 APIs and removed the extra S3-compatible signing hop
@@ -90,9 +111,6 @@ Developer guidance for this release:
 - [Share Link Delivery Architecture](docs/en/share-link-delivery.md)
 - [Development Plan](docs/en/development-plan.md)
 - [Documentation index](docs/README.md)
-
-<details>
-<summary>Older changelog entries</summary>
 
 ### April 10, 2026 · BurnBox 2.1.0 Share-Domain Release · 7:14 PM PDT
 
@@ -187,7 +205,7 @@ BurnBox demonstrates a practical pattern for private file operations on the edge
 
 ## Core Architecture
 
-The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extended that base into a share-delivery redesign. The BurnBox 2.1.1 line hardens multipart behavior, clarifies the engineering model, and establishes the repository's research agenda.
+The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extended that base into a share-delivery redesign. The BurnBox 2.1.1 line hardened multipart behavior and clarified the research direction. The BurnBox 2.2.0 line moves workspace authentication from a deployment-password pattern toward owner claim, upgrade flow, and in-product account security.
 
 The current share architecture uses:
 
@@ -208,7 +226,7 @@ Read the technical notes here:
 
 ## Features
 
-- signed admin session with `HttpOnly` cookie
+- signed owner session with `HttpOnly` cookie
 - chunked multipart upload with 5 MiB slices
 - D1-backed file, upload, and share metadata
 - split-domain sharing with share-domain URL generation
@@ -216,6 +234,8 @@ Read the technical notes here:
 - legacy token-link compatibility
 - share revocation and download limits
 - file deletion with related share invalidation
+- owner-claim onboarding plus upgrade-path migration for workspace auth
+- in-product recovery email, password rotation, backup codes, and session/device reset
 - minimal single-worker architecture
 
 ## Project Structure
@@ -223,15 +243,18 @@ Read the technical notes here:
 - `src/worker.js`: Worker entrypoint and route handling
 - `src/lib/http.js`: response helpers, cookie parsing, and timing-safe comparison
 - `src/lib/audit.js`: audit log write helper
+- `src/lib/auth.js`: owner auth state, password hashing, claim, upgrade, recovery, and audit-safe auth logic
 - `src/lib/session.js`: signed session handling
 - `src/lib/files.js`: upload planning, part upload, multipart completion, deletion
 - `src/lib/shares.js`: share creation, revoke, view/download resolution, and capability checks
 - `src/lib/repository.js`: file list query layer and active share projection
 - `src/lib/layout.js`: admin workspace rendering and client-side interaction logic
+- `src/lib/auth-layout.js`: claim, sign-in, upgrade, and recovery page rendering
 - `migrations/0001_initial.sql`: initial D1 schema
 - `migrations/0002_upload_plans.sql`: upload plan table
 - `migrations/0003_multipart_uploads.sql`: multipart upload state extensions
 - `migrations/0004_share_public_handle.sql`: stable public share handle support
+- `migrations/0005_owner_auth.sql`: owner account, claim token, recovery code, and auth event support
 
 ## Quick Start
 
@@ -256,23 +279,30 @@ npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/000
 npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/0002_upload_plans.sql
 npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/0003_multipart_uploads.sql
 npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/0004_share_public_handle.sql
+npx wrangler d1 execute <your-d1-database-name> --remote --file=./migrations/0005_owner_auth.sql
 ```
 
 5. Configure production secrets.
 
 ```bash
-npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
+npx wrangler secret put CLAIM_KEY
 ```
 
-`SHARE_LINK_SECRET` is required. Share creation may still work without it, but public download links will fail until it is configured.
+`SHARE_LINK_SECRET` is required. Share creation may still work without it, but public download links will fail until it is configured. `CLAIM_KEY` is only for one-time workspace claim when you are not using a log-generated claim code. It is not the long-lived owner password.
 
 6. Start remote development.
 
 ```bash
 npm run dev
 ```
+
+7. Complete the auth path after startup.
+
+- a fresh deployment should show `Claim your BurnBox`
+- a legacy deployment should show the upgrade login path first
+- after upgrade or claim, the workspace should support owner sign-in, password change, recovery-email update, backup-code regeneration, and `Sign Out Other Devices`
 
 ## Documentation
 
@@ -358,6 +388,9 @@ The project's research thesis is that edge reliability is usually not blocked by
 ## Security Model
 
 - The admin workspace is private and session-protected.
+- Owner passwords are hashed with PBKDF2 and are never returned to the client.
+- Recovery-code reset is rate-limited and returns generic failure responses.
+- Legacy upgrade login is throttled so the transitional password path is not left unbounded.
 - Share tokens are stored as hashes, not plaintext.
 - `public_handle` is a public identifier, not a secret.
 - File objects are durable by default in R2.
@@ -389,6 +422,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 11, 2026 at 9:29 PM PDT</sub>
+<sub>Last updated: April 12, 2026 at 5:16 PM PDT</sub>
 
 </div>

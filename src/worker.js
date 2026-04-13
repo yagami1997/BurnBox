@@ -1,6 +1,20 @@
 import { recordAuditLog } from "./lib/audit.js";
+import {
+  authenticateLegacyPassword,
+  authenticateOwner,
+  changeOwnerPassword,
+  claimOwner,
+  getAuthState,
+  isValidOwnerSession,
+  regenerateRecoveryCodes,
+  resetPasswordWithRecoveryCode,
+  signOutAllDevices,
+  updateRecoveryEmail,
+  upgradeLegacyOwner,
+} from "./lib/auth.js";
 import { completeUpload, createUploadPlan, deleteFile, uploadFilePart } from "./lib/files.js";
 import { html, json, noContent, readJson, timingSafeEqual, withDefaultHeaders } from "./lib/http.js";
+import { renderAuthPage } from "./lib/auth-layout.js";
 import { renderAppPage } from "./lib/layout.js";
 import { listFiles } from "./lib/repository.js";
 import { renderPublicHostUnavailablePage, renderShareErrorPage } from "./lib/share-pages.js";
@@ -13,6 +27,9 @@ import {
   revokeShare,
 } from "./lib/shares.js";
 import { clearSessionCookie, createSession, readSession } from "./lib/session.js";
+
+const UPGRADE_SESSION_SUBJECT = "legacy_upgrade";
+const UPGRADE_SESSION_MODE = "legacy_upgrade";
 
 export default {
   async fetch(request, env) {
@@ -51,7 +68,10 @@ async function route(request, env) {
     || url.pathname.startsWith("/h/")
     || url.pathname.startsWith("/s/")
     || url.pathname === "/download";
-  const session = await readSession(request, env);
+  const rawSession = await readSession(request, env);
+  const authState = await getAuthState(env);
+  const activeOwner = await isValidOwnerSession(env, rawSession);
+  const hasUpgradeSession = rawSession?.mode === UPGRADE_SESSION_MODE && rawSession?.sub === UPGRADE_SESSION_SUBJECT;
 
   if (isPublicHost && isApiPath) {
     return notFoundForRequest(request);
@@ -73,36 +93,338 @@ async function route(request, env) {
     return notFoundForRequest(request);
   }
 
+  if (!isPublicHost && request.method === "GET" && url.pathname === "/recover") {
+    return html(renderAuthPage({
+      view: "recover",
+      ownerEmail: authState.owner?.email || "",
+    }));
+  }
+
   if (request.method === "GET" && url.pathname === "/") {
-    const files = session ? await listFiles(env) : [];
-    return html(renderAppPage({ authenticated: Boolean(session), files }));
+    if (authState.state === "active" && activeOwner) {
+      const files = await listFiles(env);
+      return html(renderAppPage({ files, owner: activeOwner }));
+    }
+
+    if (authState.state === "unclaimed") {
+      return html(renderAuthPage({
+        view: "claim",
+        claimCodeRequired: authState.claimCodeRequired,
+      }));
+    }
+
+    if (authState.state === "upgrade_required" && hasUpgradeSession) {
+      return html(renderAuthPage({ view: "upgrade" }));
+    }
+
+    if (authState.state === "upgrade_required") {
+      return html(renderAuthPage({ view: "legacy-login" }));
+    }
+
+    return html(renderAuthPage({
+      view: "login",
+      ownerEmail: authState.owner?.email || "",
+    }));
   }
 
   if (request.method === "GET" && url.pathname === "/api/auth/session") {
-    return json({ authenticated: Boolean(session) });
+    return json({
+      authenticated: Boolean(activeOwner),
+      authState: authState.state,
+      ownerEmail: authState.owner?.email || "",
+      hasUpgradeSession,
+    });
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/claim") {
+    if (authState.state !== "unclaimed") {
+      return json({ error: "Workspace is already claimed" }, { status: 409 });
+    }
+
+    const body = await readJson(request);
+    if (!body?.claimCode || !body?.email || !body?.password) {
+      return json({ error: "claimCode, email, and password are required" }, { status: 400 });
+    }
+    if (String(body.password) !== String(body.confirmPassword || body.password)) {
+      return json({ error: "Passwords do not match" }, { status: 400 });
+    }
+
+    try {
+      const result = await claimOwner(env, {
+        claimCode: body.claimCode,
+        email: body.email,
+        password: body.password,
+        recoveryEmail: body.recoveryEmail || null,
+        clientIp: request.headers.get("cf-connecting-ip") ?? null,
+      });
+      const sessionData = await createSession(env, {
+        sub: result.owner.id,
+        email: result.owner.email,
+        mode: "active",
+        sessionVersion: result.owner.sessionVersion,
+      });
+      return json(
+        {
+          success: true,
+          recoveryCodes: result.recoveryCodes,
+        },
+        {
+          headers: { "set-cookie": sessionData.cookie },
+        },
+      );
+    } catch (error) {
+      return authErrorResponse(error);
+    }
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/login") {
     const body = await readJson(request);
-    if (!body?.password) {
-      return json({ error: "Password is required" }, { status: 400 });
+    if (authState.state === "upgrade_required") {
+      if (!body?.password) {
+        return json({ error: "Password is required" }, { status: 400 });
+      }
+
+      const result = await authenticateLegacyPassword(env, body.password, getAuthContext(request));
+      if (!result.ok) {
+        if (result.retryAfter) {
+          return json(
+            { error: result.error },
+            {
+              status: 429,
+              headers: {
+                "retry-after": String(result.retryAfter),
+              },
+            },
+          );
+        }
+        return json({ error: result.error }, { status: 401 });
+      }
+
+      const sessionData = await createSession(env, {
+        sub: UPGRADE_SESSION_SUBJECT,
+        mode: UPGRADE_SESSION_MODE,
+        sessionVersion: 0,
+        ttlSeconds: 60 * 15,
+      });
+      return json(
+        { success: true, next: "upgrade" },
+        {
+          headers: { "set-cookie": sessionData.cookie },
+        },
+      );
     }
 
-    if (!env.ADMIN_PASSWORD || !env.SESSION_SECRET) {
-      return json({ error: "Worker secret configuration is incomplete" }, { status: 500 });
+    if (authState.state !== "active") {
+      return json({ error: "Workspace is not ready for owner sign-in" }, { status: 409 });
     }
 
-    if (!timingSafeEqual(String(body.password || ""), String(env.ADMIN_PASSWORD || ""))) {
-      return json({ error: "Invalid password" }, { status: 401 });
+    if (!body?.email || !body?.password) {
+      return json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    const sessionData = await createSession(env);
+    const result = await authenticateOwner(env, {
+      email: body.email,
+      password: body.password,
+      ...getAuthContext(request),
+    });
+    if (!result.ok) {
+      return json({ error: result.error, lockedUntil: result.lockedUntil || null }, { status: 401 });
+    }
+
+    const sessionData = await createSession(env, {
+      sub: result.owner.id,
+      email: result.owner.email,
+      mode: "active",
+      sessionVersion: result.owner.sessionVersion,
+    });
     return json(
       { success: true },
       {
         headers: { "set-cookie": sessionData.cookie },
       },
     );
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/upgrade") {
+    if (!hasUpgradeSession || authState.state !== "upgrade_required") {
+      return json({ error: "Upgrade session is required" }, { status: 401 });
+    }
+
+    const body = await readJson(request);
+    if (!body?.email || !body?.password) {
+      return json({ error: "Email and password are required" }, { status: 400 });
+    }
+    if (String(body.password) !== String(body.confirmPassword || body.password)) {
+      return json({ error: "Passwords do not match" }, { status: 400 });
+    }
+
+    try {
+      const result = await upgradeLegacyOwner(env, {
+        email: body.email,
+        password: body.password,
+        recoveryEmail: body.recoveryEmail || null,
+        clientIp: request.headers.get("cf-connecting-ip") ?? null,
+      });
+      const sessionData = await createSession(env, {
+        sub: result.owner.id,
+        email: result.owner.email,
+        mode: "active",
+        sessionVersion: result.owner.sessionVersion,
+      });
+      return json(
+        {
+          success: true,
+          recoveryCodes: result.recoveryCodes,
+        },
+        {
+          headers: { "set-cookie": sessionData.cookie },
+        },
+      );
+    } catch (error) {
+      return authErrorResponse(error);
+    }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/recover-with-code") {
+    const body = await readJson(request);
+    if (!body?.email || !body?.recoveryCode || !body?.newPassword) {
+      return json({ error: "Email, recoveryCode, and newPassword are required" }, { status: 400 });
+    }
+    if (String(body.newPassword) !== String(body.confirmPassword || body.newPassword)) {
+      return json({ error: "Passwords do not match" }, { status: 400 });
+    }
+
+    try {
+      const owner = await resetPasswordWithRecoveryCode(env, {
+        email: body.email,
+        recoveryCode: body.recoveryCode,
+        newPassword: body.newPassword,
+        ...getAuthContext(request),
+      });
+      const sessionData = await createSession(env, {
+        sub: owner.id,
+        email: owner.email,
+        mode: "active",
+        sessionVersion: owner.sessionVersion,
+      });
+      return json(
+        { success: true },
+        {
+          headers: { "set-cookie": sessionData.cookie },
+        },
+      );
+    } catch (error) {
+      return authErrorResponse(error);
+    }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/change-password") {
+    if (!activeOwner) {
+      return json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await readJson(request);
+    if (!body?.currentPassword || !body?.newPassword) {
+      return json({ error: "currentPassword and newPassword are required" }, { status: 400 });
+    }
+    if (String(body.newPassword) !== String(body.confirmPassword || body.newPassword)) {
+      return json({ error: "Passwords do not match" }, { status: 400 });
+    }
+
+    try {
+      const owner = await changeOwnerPassword(env, activeOwner.id, {
+        currentPassword: body.currentPassword,
+        newPassword: body.newPassword,
+        ...getAuthContext(request),
+      });
+      const sessionData = await createSession(env, {
+        sub: owner.id,
+        email: owner.email,
+        mode: "active",
+        sessionVersion: owner.sessionVersion,
+      });
+      return json(
+        { success: true },
+        {
+          headers: { "set-cookie": sessionData.cookie },
+        },
+      );
+    } catch (error) {
+      return authErrorResponse(error);
+    }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/recovery-codes/regenerate") {
+    if (!activeOwner) {
+      return json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await readJson(request);
+    try {
+      const recoveryCodes = await regenerateRecoveryCodes(
+        env,
+        activeOwner.id,
+        body?.currentPassword || "",
+        getAuthContext(request),
+      );
+      return json({ success: true, recoveryCodes });
+    } catch (error) {
+      return authErrorResponse(error);
+    }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/recovery-email") {
+    if (!activeOwner) {
+      return json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await readJson(request);
+    if (!body?.currentPassword) {
+      return json({ error: "Current password is required" }, { status: 400 });
+    }
+
+    try {
+      const owner = await updateRecoveryEmail(env, activeOwner.id, {
+        currentPassword: body.currentPassword,
+        recoveryEmail: body.recoveryEmail || "",
+        ...getAuthContext(request),
+      });
+      return json({
+        success: true,
+        owner: {
+          email: owner.email,
+          recoveryEmail: owner.recoveryEmail || "",
+          lastLoginAt: owner.lastLoginAt || "",
+          lastLoginIp: owner.lastLoginIp || "",
+        },
+      });
+    } catch (error) {
+      return authErrorResponse(error);
+    }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/sign-out-all") {
+    if (!activeOwner) {
+      return json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      const owner = await signOutAllDevices(env, activeOwner.id, getAuthContext(request));
+      const sessionData = await createSession(env, {
+        sub: owner.id,
+        email: owner.email,
+        mode: "active",
+        sessionVersion: owner.sessionVersion,
+      });
+      return json(
+        { success: true },
+        {
+          headers: { "set-cookie": sessionData.cookie },
+        },
+      );
+    } catch (error) {
+      return authErrorResponse(error);
+    }
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/logout") {
@@ -114,7 +436,7 @@ async function route(request, env) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/files") {
-    if (!session) {
+    if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -123,7 +445,7 @@ async function route(request, env) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/files/init-upload") {
-    if (!session) {
+    if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -150,7 +472,7 @@ async function route(request, env) {
     }
 
     await recordAuditLog(env, {
-      actor: session.sub,
+      actor: activeOwner.id,
       action: "file.upload_initialized",
       targetType: "file",
       targetId: uploadPlan.fileId,
@@ -164,7 +486,7 @@ async function route(request, env) {
   }
 
   if (request.method === "POST" && url.pathname.startsWith("/api/files/") && url.pathname.endsWith("/upload-part")) {
-    if (!session) {
+    if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -211,7 +533,7 @@ async function route(request, env) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/files/complete-upload") {
-    if (!session) {
+    if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -245,7 +567,7 @@ async function route(request, env) {
     }
 
     await recordAuditLog(env, {
-      actor: session.sub,
+      actor: activeOwner.id,
       action: "file.upload_completed",
       targetType: "file",
       targetId: file.id,
@@ -259,7 +581,7 @@ async function route(request, env) {
   }
 
   if (request.method === "DELETE" && url.pathname.startsWith("/api/files/")) {
-    if (!session) {
+    if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -274,7 +596,7 @@ async function route(request, env) {
     }
 
     await recordAuditLog(env, {
-      actor: session.sub,
+      actor: activeOwner.id,
       action: "file.deleted",
       targetType: "file",
       targetId: deleted.id,
@@ -287,7 +609,7 @@ async function route(request, env) {
   }
 
   if (request.method === "POST" && url.pathname.startsWith("/api/files/") && url.pathname.endsWith("/shares")) {
-    if (!session) {
+    if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -326,7 +648,7 @@ async function route(request, env) {
 
     const shareUrls = buildShareUrls(env, url, share);
     await recordAuditLog(env, {
-      actor: session.sub,
+      actor: activeOwner.id,
       action: "share.created",
       targetType: "share",
       targetId: share.id,
@@ -353,7 +675,7 @@ async function route(request, env) {
   }
 
   if (request.method === "POST" && url.pathname.startsWith("/api/shares/") && url.pathname.endsWith("/revoke")) {
-    if (!session) {
+    if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -371,7 +693,7 @@ async function route(request, env) {
     }
 
     await recordAuditLog(env, {
-      actor: session.sub,
+      actor: activeOwner.id,
       action: "share.revoked",
       targetType: "share",
       targetId: shareId,
@@ -650,4 +972,42 @@ function encodeBase64Url(bytes) {
 function contentDisposition(filename) {
   const encoded = encodeURIComponent(filename).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
   return `attachment; filename*=UTF-8''${encoded}`;
+}
+
+function getAuthContext(request) {
+  return {
+    clientIp: request.headers.get("cf-connecting-ip") ?? null,
+    clientCountry: request.cf?.country ?? null,
+    userAgent: request.headers.get("user-agent") ?? null,
+  };
+}
+
+function authErrorResponse(error) {
+  console.error("auth_error", error);
+  const message = String(error?.message || "");
+  if (message === "Invalid claim code" || message === "Recovery details are invalid" || message === "Current password is incorrect") {
+    return json({ error: message }, { status: 401 });
+  }
+  if (message === "Recovery path temporarily locked" || message === "Claim path temporarily locked") {
+    return json({ error: message }, { status: 429 });
+  }
+  if (
+    message === "Workspace has already been claimed"
+    || message === "Workspace upgrade is already complete"
+    || message === "Workspace is already claimed"
+  ) {
+    return json({ error: message }, { status: 409 });
+  }
+  if (
+    message === "A valid email address is required"
+    || message === "Password must be at least 8 characters"
+    || message === "Password must be at most 1024 characters"
+    || message === "Passwords do not match"
+  ) {
+    return json({ error: message }, { status: 400 });
+  }
+  if (message === "owner auth migration is required") {
+    return json({ error: message }, { status: 500 });
+  }
+  return json({ error: "Internal server error" }, { status: 500 });
 }

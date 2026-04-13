@@ -1,6 +1,6 @@
 # クイックスタート
 
-*最終更新: April 11, 2026 at 9:29 PM PDT*
+*最終更新: April 12, 2026 at 5:16 PM PDT*
 
 ## 要件
 
@@ -44,6 +44,7 @@ npx wrangler d1 execute burnbox --remote --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0002_upload_plans.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0003_multipart_uploads.sql
 npx wrangler d1 execute burnbox --remote --file=./migrations/0004_share_public_handle.sql
+npx wrangler d1 execute burnbox --remote --file=./migrations/0005_owner_auth.sql
 ```
 
 ローカル D1 を使う場合:
@@ -53,26 +54,28 @@ npx wrangler d1 execute burnbox --local --file=./migrations/0001_initial.sql
 npx wrangler d1 execute burnbox --local --file=./migrations/0002_upload_plans.sql
 npx wrangler d1 execute burnbox --local --file=./migrations/0003_multipart_uploads.sql
 npx wrangler d1 execute burnbox --local --file=./migrations/0004_share_public_handle.sql
+npx wrangler d1 execute burnbox --local --file=./migrations/0005_owner_auth.sql
 ```
 
 ## 4. 本番 secrets の設定
 
 ```bash
-npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put SHARE_LINK_SECRET
+npx wrangler secret put CLAIM_KEY
 ```
 
 `SHARE_LINK_SECRET` は公開 download に必須です。これがないと、workspace login が正常でも share link は `503` を返します。
+`CLAIM_KEY` は初回 owner claim 用の one-time setup key です。長期ログイン用パスワードとしては扱いません。
 
 ## 5. ローカル開発用 secrets の設定
 
 プロジェクトルートに `.dev.vars` を作成します。
 
 ```env
-ADMIN_PASSWORD=your-local-admin-password
 SESSION_SECRET=your-long-random-session-secret
 SHARE_LINK_SECRET=your-long-random-share-link-secret
+CLAIM_KEY=your-one-time-local-claim-key
 ```
 
 これは `wrangler dev --remote` に必要です。
@@ -85,9 +88,14 @@ npm run dev
 
 ## 7. システム確認
 
-2.1.1 の確認ポイント:
+2.2.0 の確認ポイント:
 
-- workspace にログインする
+- workspace を開く
+- 新規デプロイなら `Claim your BurnBox` を完了する
+- 旧環境のアップグレードなら `Upgrade your BurnBox security` を完了する
+- owner login が成功する
+- workspace account card から recovery email を追加・更新できる
+- `Change password`、`Generate Backup Codes`、`Sign Out Other Devices` が動作する
 - テストファイルをアップロードする
 - multipart upload が finalization まで進む
 - 現在の baseline が大容量転送でも目立つ oscillation なく進むことを確認する
@@ -111,5 +119,6 @@ BurnBox の公開共有リンクには現在 3 つの概念があります。
 設計理由は次を参照してください。
 
 - [共有リンク配信アーキテクチャ](share-link-delivery.md)
+- [アーキテクチャ](architecture.md)
 - [並行チャンク分割アップロード設計](concurrent-chunked-upload.md)
 - [開発計画](development-plan.md)

@@ -4,12 +4,17 @@ const COOKIE_NAME = "burnbox_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 const encoder = new TextEncoder();
+const keyCache = new Map();
 
-export async function createSession(env) {
+export async function createSession(env, input = {}) {
+  const ttlSeconds = Number(input.ttlSeconds || SESSION_TTL_SECONDS);
   const payload = {
-    sub: "admin",
+    sub: input.sub || "owner",
+    email: input.email || "",
+    mode: input.mode || "active",
+    sessionVersion: Number(input.sessionVersion || 1),
     issuedAt: Date.now(),
-    expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000,
+    expiresAt: Date.now() + ttlSeconds * 1000,
     nonce: crypto.randomUUID(),
   };
 
@@ -19,11 +24,14 @@ export async function createSession(env) {
 
   return {
     token,
-    cookie: serializeCookie(COOKIE_NAME, token, SESSION_TTL_SECONDS),
+    cookie: serializeCookie(COOKIE_NAME, token, ttlSeconds),
   };
 }
 
 export async function readSession(request, env) {
+  if (!env.SESSION_SECRET) {
+    return null;
+  }
   const cookies = getCookies(request);
   const token = cookies.get(COOKIE_NAME);
   if (!token) {
@@ -46,7 +54,12 @@ export async function readSession(request, env) {
     return null;
   }
 
-  const payload = JSON.parse(decodeBase64Url(payloadEncoded));
+  let payload;
+  try {
+    payload = JSON.parse(decodeBase64Url(payloadEncoded));
+  } catch {
+    return null;
+  }
   if (payload.expiresAt <= Date.now()) {
     return null;
   }
@@ -70,13 +83,17 @@ function serializeCookie(name, value, maxAge) {
 }
 
 async function sign(secret, value) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  let key = keyCache.get(secret);
+  if (!key) {
+    key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    keyCache.set(secret, key);
+  }
   const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
   return encodeBase64Url(signature);
 }

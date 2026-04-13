@@ -1,6 +1,6 @@
 # AI Deployment Handoff
 
-*Last updated: April 11, 2026 at 9:29 PM PDT*
+*Last updated: April 12, 2026 at 5:16 PM PDT*
 
 ## Purpose
 
@@ -17,12 +17,13 @@ The AI should help the operator complete these tasks in order:
 3. Confirm the intended Worker name, D1 database name, D1 database id, R2 bucket name, workspace hostname, and public share hostname.
 4. Apply D1 migrations in order.
 5. Configure required Worker secrets:
-   - `ADMIN_PASSWORD`
    - `SESSION_SECRET`
    - `SHARE_LINK_SECRET`
+   - `CLAIM_KEY` if the deployment is using a manual setup key instead of a log-generated claim code
 6. Deploy the Worker.
-7. Validate workspace login, upload, share creation, and direct share download.
-8. If public links fail, check `SHARE_LINK_SECRET`, `SHARE_BASE_URL`, `ALLOWED_SHARE_HOSTS`, and route coverage first.
+7. Validate owner claim or upgrade flow, upload, share creation, and direct share download.
+8. Verify workspace account controls: recovery email, password change, backup-code generation, logout, and `Sign Out Other Devices`.
+9. If public links fail, check `SHARE_LINK_SECRET`, `SHARE_BASE_URL`, `ALLOWED_SHARE_HOSTS`, and route coverage first.
 
 ## Important constraints
 
@@ -43,9 +44,11 @@ Before handing this repo to an AI, have these values ready:
 - one R2 bucket name
 - one workspace hostname
 - one public share hostname
-- one admin password
+- one owner email
 - one strong session secret
 - one strong share-link secret
+- one manual claim key only if you do not want to rely on a log-generated claim code
+- whether this deployment is fresh or upgrading from a legacy `ADMIN_PASSWORD` instance
 
 ## Copy-paste handoff prompt
 
@@ -71,11 +74,12 @@ Rules:
 - Do not skip SHARE_LINK_SECRET.
 - Warn me before any force push, destructive action, or secret overwrite.
 - After deployment, verify:
-  1. workspace login works
-  2. file upload works
-  3. share creation works
-  4. the stable link uses the public share host
-  5. the share link downloads directly
+  1. owner claim or upgrade works
+  2. recovery email and password change work
+  3. file upload works
+  4. share creation works
+  5. the stable link uses the public share host
+  6. the share link downloads directly
 
 If anything fails, debug in this order:
 - wrangler.toml values
@@ -92,10 +96,12 @@ Keep a short running checklist of what is done and what is still blocked.
 A deployment should not be considered complete until all of these are true:
 
 - `wrangler.toml` matches the intended Cloudflare resources
-- all four D1 migrations have been applied in order
-- `ADMIN_PASSWORD`, `SESSION_SECRET`, and `SHARE_LINK_SECRET` exist on the Worker
+- all five D1 migrations have been applied in order
+- `SESSION_SECRET` and `SHARE_LINK_SECRET` exist on the Worker
+- `CLAIM_KEY` exists if you are not using log-generated claim codes
 - the Worker is deployed to both the workspace host and the public share host
-- workspace login succeeds
+- owner claim or upgrade succeeds
+- workspace account controls succeed after sign-in
 - at least one upload completes
 - at least one share link downloads successfully
 
