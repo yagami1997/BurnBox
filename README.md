@@ -136,7 +136,7 @@ Developer guidance for this release:
 
 ## Workspace Preview
 
-![BurnBox workspace overview](docs/assets/ScreenShot_2026-04-13_093249_392.png)
+![BurnBox workspace overview](docs/assets/ScreenShot_2026-04-13_093737_866.png)
 
 ## Technical Philosophy
 
