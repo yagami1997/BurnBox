@@ -141,6 +141,8 @@ Developer guidance for this release:
 
 ![BurnBox workspace overview](docs/assets/ScreenShot_2026-04-13_093737_866.png)
 
+This screenshot is an illustrative example of one BurnBox workspace configuration. It does not represent a required or final deployment appearance. Fork operators may redesign the interface, policy surface, and operational presentation of their own deployments, and they remain responsible for the legal and platform obligations of those deployments.
+
 ## Technical Philosophy
 
 - Keep the architecture thin enough to audit.
