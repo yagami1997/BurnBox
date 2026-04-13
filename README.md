@@ -37,6 +37,7 @@
 - [Documentation](#documentation)
 - [Research Directions](#research-directions)
 - [Contribution and Security](#contribution-and-security)
+- [Legal Position](#legal-position)
 - [Security Model](#security-model)
 - [Notes](#notes)
 - [License](#license)
@@ -72,7 +73,7 @@ Publishing it is useful for three reasons:
 
 ## Changelog
 
-### April 12, 2026 · BurnBox 2.2.0 Owner Account and Security Upgrade · 5:16 PM PDT
+### April 12, 2026 · BurnBox 2.2.0 Owner Account and Security Upgrade · 8:36 PM PDT
 
 - ships owner-account authentication inside the product instead of relying on a long-lived deployment password
 - adds `Claim your BurnBox` for first-run setup and `Upgrade your BurnBox security` for legacy `ADMIN_PASSWORD` deployments
@@ -80,6 +81,7 @@ Publishing it is useful for three reasons:
 - hardens auth behavior with generic invalid-credential logging, recovery lockouts, legacy-login throttling, claim-token atomicity, and password-hash sanitization
 - keeps public share delivery, multipart upload, and stable `/h/{publicHandle}` links intact while upgrading the workspace auth model
 - refreshes the public README and operator docs so deployment, migration, upgrade, and recovery behavior all describe the shipped 2.2.0 system
+- adds a legal-risk documentation baseline that clarifies BurnBox as a self-hosted tool author project and assigns deployment compliance duties to instance operators
 
 Developer guidance for this release:
 
@@ -311,6 +313,7 @@ npm run dev
   - [AI Deployment Handoff](docs/en/ai-deployment-handoff.md)
   - [Quickstart](docs/en/quickstart.md)
   - [Deployment](docs/en/deployment.md)
+  - [Legal Risk Statement](docs/en/legal-risk-statement.md)
   - [Architecture](docs/en/architecture.md)
   - [Development Plan](docs/en/development-plan.md)
   - [Share Link Delivery Architecture](docs/en/share-link-delivery.md)
@@ -321,6 +324,7 @@ npm run dev
   - [AI Deployment Handoff (Japanese)](docs/ja/ai-deployment-handoff.md)
   - [Quickstart](docs/ja/quickstart.md)
   - [Deployment](docs/ja/deployment.md)
+  - [Legal Risk Statement](docs/ja/legal-risk-statement.md)
   - [Architecture](docs/ja/architecture.md)
   - [開発計画](docs/ja/development-plan.md)
   - [Share Link Delivery Architecture](docs/ja/share-link-delivery.md)
@@ -385,6 +389,10 @@ The project's research thesis is that edge reliability is usually not blocked by
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - Read `SECURITY.md` before reporting a vulnerability or discussing a security-sensitive issue.
 
+## Legal Position
+
+BurnBox is published as self-hosted source code, not as a hosted public file service. The project author is the author of a general-purpose tool and does not operate third-party deployments. If you fork, deploy, or run a BurnBox instance for others, you are responsible for the legal and compliance obligations of that operation. Read the full [Legal Risk Statement](docs/en/legal-risk-statement.md).
+
 ## Security Model
 
 - The admin workspace is private and session-protected.
@@ -424,6 +432,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 12, 2026 at 6:47 PM PDT</sub>
+<sub>Last updated: April 12, 2026 at 8:36 PM PDT</sub>
 
 </div>
