@@ -1,6 +1,6 @@
 # Quickstart
 
-*Last updated: April 12, 2026 at 5:16 PM PDT*
+*Last updated: April 12, 2026 at 6:31 PM PDT*
 
 ## Requirements
 
@@ -67,6 +67,7 @@ npx wrangler secret put CLAIM_KEY
 
 `SHARE_LINK_SECRET` is mandatory for public downloads. If it is missing, share links will return `503` even if the workspace login still works.
 `CLAIM_KEY` is only for the initial owner-claim path. It should not be treated as the long-lived workspace password.
+If `CLAIM_KEY` is omitted, a one-time claim token will be generated and written to the Worker log on first workspace visit.
 
 ## 5. Configure local development secrets
 
@@ -88,7 +89,7 @@ npm run dev
 
 ## 7. Verify the system
 
-Check the main 2.2.0 flow:
+Check the main flow:
 
 - open the workspace
 - if this is a new deployment, complete `Claim your BurnBox`

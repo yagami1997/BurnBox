@@ -1,6 +1,6 @@
 # クイックスタート
 
-*最終更新: April 12, 2026 at 5:16 PM PDT*
+*最終更新: April 12, 2026 at 6:31 PM PDT*
 
 ## 要件
 
@@ -67,6 +67,7 @@ npx wrangler secret put CLAIM_KEY
 
 `SHARE_LINK_SECRET` は公開 download に必須です。これがないと、workspace login が正常でも share link は `503` を返します。
 `CLAIM_KEY` は初回 owner claim 用の one-time setup key です。長期ログイン用パスワードとしては扱いません。
+`CLAIM_KEY` を設定しない場合、workspace への初回アクセス時に one-time claim token が生成され、Worker log に書き出されます。
 
 ## 5. ローカル開発用 secrets の設定
 
@@ -88,7 +89,7 @@ npm run dev
 
 ## 7. システム確認
 
-2.2.0 の確認ポイント:
+主要 flow の確認:
 
 - workspace を開く
 - 新規デプロイなら `Claim your BurnBox` を完了する

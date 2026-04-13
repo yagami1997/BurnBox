@@ -1,6 +1,6 @@
 # Architecture
 
-*Last updated: April 12, 2026 at 5:16 PM PDT*
+*Last updated: April 12, 2026 at 6:31 PM PDT*
 
 ## Overview
 
@@ -65,8 +65,6 @@ The third major shift is moving workspace authentication from a deployment-passw
 7. The Worker finalizes object assembly and writes the final file record to D1.
 
 This flow is intentionally stateful. The difficulty is not only moving bytes into R2. The difficulty is preserving correct system state across many part requests, retries, and a final commit boundary.
-
-The next planned extension is a resume-status layer so interrupted uploads can continue from durable server-side part truth instead of restarting from part `1`.
 
 ## Share flow
 
@@ -173,4 +171,38 @@ This split is enforced in the Worker route layer.
 - target type
 - target id
 - metadata
+- timestamp
+
+### `owner_account`
+
+- owner identity
+- password hash and algorithm
+- recovery email
+- session version
+- timestamps
+
+### `claim_tokens`
+
+- token hash
+- source (log-generated or env-provided)
+- used timestamp
+
+### `password_reset_tokens`
+
+- token hash
+- expiration
+- used timestamp
+
+### `recovery_codes`
+
+- owner reference
+- code hash
+- used timestamp
+
+### `auth_events`
+
+- event type
+- actor
+- ip address
+- detail json
 - timestamp

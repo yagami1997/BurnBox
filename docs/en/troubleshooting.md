@@ -1,6 +1,6 @@
 # Troubleshooting
 
-*Last updated: April 12, 2026 at 5:16 PM PDT*
+*Last updated: April 12, 2026 at 6:31 PM PDT*
 
 ## Upload succeeds but the file does not appear
 
@@ -34,7 +34,7 @@ The next planned mitigation is resumable upload. See the [Development Plan](deve
 
 ## Migration reports duplicate column errors
 
-If `0003_multipart_uploads.sql` or `0004_share_public_handle.sql` fails with a duplicate-column or duplicate-index error, your D1 database may already contain the expected schema. Inspect the live table structure first instead of rerunning the same migration blindly.
+If `0003_multipart_uploads.sql`, `0004_share_public_handle.sql`, or `0005_owner_auth.sql` fails with a duplicate-column or duplicate-index error, your D1 database may already contain the expected schema. Inspect the live table structure first instead of rerunning the same migration blindly.
 
 ## Share creation returns an error
 
@@ -125,3 +125,35 @@ This repository uses `wrangler dev --remote` by default to reduce local/remote b
 ## Older files do not appear in the registry
 
 The current registry view returns the latest 100 non-deleted files. If you operate larger archives, add pagination before relying on the UI for full-history management.
+
+## Claim or upgrade flow does not appear
+
+If the workspace loads directly into the login page without a claim or upgrade prompt:
+
+- confirm the correct D1 database is bound to the deployed Worker
+- confirm `0005_owner_auth.sql` has been applied
+- confirm the Worker deployment is current
+
+## Claim token is rejected
+
+Check:
+
+- `CLAIM_KEY` matches the value set as a Worker secret
+- the token has not already been used — each token is valid for one claim only
+- if `CLAIM_KEY` was not set, retrieve the auto-generated token from the Worker log for the first workspace visit
+
+## `Upgrade your BurnBox security` prompt does not appear
+
+Check:
+
+- `ADMIN_PASSWORD` is still set on the deployed Worker
+- the workspace state is `upgrade_required`, not already `active`
+- `0005_owner_auth.sql` has been applied
+
+## Recovery codes page shows no codes
+
+Check:
+
+- `0005_owner_auth.sql` has been applied
+- the owner account was created after the migration was in place
+- if needed, use `Generate Backup Codes` from the account card to issue a fresh set
