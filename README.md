@@ -38,6 +38,7 @@
 - [Research Directions](#research-directions)
 - [Contribution and Security](#contribution-and-security)
 - [Legal Position](#legal-position)
+- [Legal Notices](#legal-notices)
 - [Security Model](#security-model)
 - [Notes](#notes)
 - [License](#license)
@@ -393,6 +394,10 @@ The project's research thesis is that edge reliability is usually not blocked by
 
 BurnBox is published as self-hosted source code, not as a hosted public file service. The project author is the author of a general-purpose tool and does not operate third-party deployments. If you fork, deploy, or run a BurnBox instance for others, you are responsible for the legal and compliance obligations of that operation. Read the full [Legal Risk Statement](docs/en/legal-risk-statement.md).
 
+## Legal Notices
+
+Security reports about the BurnBox source project itself should follow [SECURITY.md](SECURITY.md). Complaints about files, links, copyright, abuse, privacy, or unlawful content on a third-party BurnBox deployment must be sent to the operator of that deployment, not to the upstream source-code repository. Each deployer should publish its own operator contact route, such as `abuse@your-domain.example` or `legal@your-domain.example`.
+
 ## Security Model
 
 - The admin workspace is private and session-protected.
@@ -432,6 +437,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 12, 2026 at 8:36 PM PDT</sub>
+<sub>Last updated: April 12, 2026 at 8:39 PM PDT</sub>
 
 </div>

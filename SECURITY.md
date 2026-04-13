@@ -1,6 +1,6 @@
 # Security Policy
 
-*Last updated: April 11, 2026 at 12:18 PM PDT*
+*Last updated: April 12, 2026 at 8:39 PM PDT*
 
 ## Supported scope
 
@@ -23,6 +23,18 @@ Instead, report enough information for reproduction in a private channel control
 - reproduction steps
 - expected impact
 - configuration assumptions
+
+## Routing boundary
+
+This document covers security issues in the BurnBox source project itself.
+
+Do not use this security channel for:
+
+- copyright complaints about files hosted on a third-party BurnBox deployment
+- abuse reports concerning a third-party share link or operator instance
+- privacy or content-removal requests directed at an independently operated deployment
+
+Those notices must be sent to the operator of the specific deployment that stores or serves the content. BurnBox is published as self-hosted source code, and the upstream maintainer does not operate third-party instances.
 
 ## Hardening model
 
