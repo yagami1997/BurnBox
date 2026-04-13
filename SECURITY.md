@@ -1,6 +1,6 @@
 # Security Policy
 
-*Last updated: April 13, 2026 at 01:49 AM PDT*
+*Last updated: April 13, 2026 at 01:56 AM PDT*
 
 ## Supported scope
 
@@ -25,6 +25,18 @@ Instead, report enough information for reproduction in a private channel control
 - expected impact
 - configuration assumptions
 
+## Operator compliance expectation
+
+Security in BurnBox is not limited to code defects. Anyone forking, deploying, or extending the project is expected to operate it lawfully and with a high degree of compliance awareness.
+
+That includes:
+
+- complying with applicable cybersecurity, copyright, data-protection, and file-sharing rules in the jurisdictions where the system is developed, deployed, or exposed
+- evaluating whether a deployment model creates operator obligations for notice handling, access control, record retention, privacy compliance, or unlawful-content response
+- refusing deployment or downstream changes that rely on infringement, unauthorized access, or evasion of lawful restrictions
+
+BurnBox is meant for lawful private file management and controlled sharing. It is not intended for operators who are unwilling to meet the legal responsibilities of running such a system.
+
 ## Routing boundary
 
 This document covers security issues in the BurnBox source project itself.
@@ -36,6 +48,8 @@ Do not use this security channel for:
 - privacy or content-removal requests directed at an independently operated deployment
 
 Those notices must be sent to the operator of the specific deployment that stores or serves the content. BurnBox is published as self-hosted source code, and the upstream maintainer does not operate third-party instances.
+
+For the broader legal and compliance boundary of the project, read the repository's legal risk guidance in `docs/en/legal-risk-statement.md`.
 
 ## Hardening model
 

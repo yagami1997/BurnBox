@@ -1,6 +1,6 @@
 # Contributing
 
-*Last updated: April 13, 2026 at 01:49 AM PDT*
+*Last updated: April 13, 2026 at 01:56 AM PDT*
 
 Thank you for contributing to BurnBox.
 
@@ -23,6 +23,19 @@ BurnBox is intentionally narrow. Contributions are most useful when they preserv
 - keep `wrangler.toml.template` generic and placeholder-only
 - keep all public Git-tracked docs on placeholder domains such as `console.example.com` and `relay.example.net`
 - keep all public Git-tracked docs stamped with a real-time `PDT` or `PST` last-updated line
+
+## Compliance expectation
+
+BurnBox is not intended for casual or irresponsible deployment. Anyone who forks, deploys, operates, extends, or redistributes this project is expected to maintain a high standard of legal and compliance awareness.
+
+That expectation includes:
+
+- understanding and following the network-security, copyright, file-sharing, privacy, and platform-operation rules that apply in the jurisdiction where the code is developed, deployed, or made available
+- evaluating whether a planned deployment remains lawful in the operator's country, region, industry, and hosting context
+- refusing uses that depend on infringement, unauthorized access, complaint evasion, or regulatory evasion
+- treating compliance work as part of operating the system, not as an optional afterthought
+
+If a prospective fork operator is unwilling to meet that standard, BurnBox is not an appropriate project for that deployment.
 
 ## Development guide
 
@@ -53,12 +66,15 @@ This route exists for technical reasons, not just UI preference:
 
 When you change share behavior, deployment behavior, or release direction, update the public docs in the same change set.
 
+Before proposing or operating a public-facing deployment, read the project's legal risk guidance and make sure the contribution does not weaken that compliance posture.
+
 At minimum, review:
 
 - `README.md`
 - `CONTRIBUTING.md`
 - `SECURITY.md`
 - `docs/README.md`
+- `docs/en/legal-risk-statement.md`
 - `docs/en/quickstart.md`
 - `docs/en/deployment.md`
 - `docs/en/architecture.md`
@@ -69,6 +85,7 @@ At minimum, review:
 - `docs/ja/deployment.md`
 - `docs/ja/architecture.md`
 - `docs/ja/development-plan.md`
+- `docs/ja/legal-risk-statement.md`
 - `docs/ja/share-link-delivery.md`
 - `docs/ja/troubleshooting.md`
 
@@ -102,6 +119,7 @@ If a pull request changes route behavior, share URL shape, migration sequencing,
 - mention any owner-auth or session-behavior change explicitly
 - mention any share URL or route behavior change explicitly
 - mention any public documentation or timestamp update explicitly
+- confirm that the proposed change is intended for lawful, compliant use and does not weaken the project's legal or compliance posture
 - include screenshots only when they do not expose private deployment details
 
 ## Design principle
