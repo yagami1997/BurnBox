@@ -104,6 +104,26 @@ export function renderAppPage({ files, owner = null }) {
 
       .brand-word {
         display: inline-block;
+        text-shadow: 0 10px 28px rgba(8, 20, 36, 0.18);
+      }
+
+      .brand-word .brand-target {
+        display: inline-block;
+        width: 0.78em;
+        height: 0.78em;
+        margin: 0 0.03em 0 0.01em;
+        border-radius: 999px;
+        vertical-align: -0.06em;
+        background:
+          radial-gradient(circle,
+            #be3127 0 16%,
+            #fff7f2 16% 31%,
+            #be3127 31% 48%,
+            #fff7f2 48% 66%,
+            #be3127 66% 100%);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+          0 8px 18px rgba(159, 23, 19, 0.16);
       }
 
       .tagline {
@@ -243,7 +263,7 @@ export function renderAppPage({ files, owner = null }) {
         display: grid;
         gap: 10px;
         position: relative;
-        min-height: 336px;
+        min-height: 304px;
         overflow: hidden;
       }
 
@@ -382,7 +402,7 @@ export function renderAppPage({ files, owner = null }) {
         display: none;
         gap: 10px;
         align-content: start;
-        padding: 16px 18px;
+        padding: 14px 16px;
         border-radius: inherit;
         background: linear-gradient(180deg, rgba(20, 50, 82, 0.98), rgba(29, 67, 107, 0.96));
         z-index: 2;
@@ -394,21 +414,21 @@ export function renderAppPage({ files, owner = null }) {
       }
 
       .account-panel .field {
-        gap: 5px;
+        gap: 4px;
         max-width: 100%;
       }
 
       .account-panel .field label {
         color: rgba(222, 235, 248, 0.86);
-        font-size: 0.76rem;
+        font-size: 0.74rem;
       }
 
       .account-panel input {
         background: rgba(255, 255, 255, 0.94);
-        padding: 10px 12px;
-        border-radius: 12px;
-        min-height: 42px;
-        box-shadow: 0 6px 18px rgba(20, 50, 82, 0.08);
+        padding: 9px 12px;
+        border-radius: 13px;
+        min-height: 38px;
+        box-shadow: 0 4px 14px rgba(20, 50, 82, 0.07);
       }
 
       .account-panel-title {
@@ -424,24 +444,46 @@ export function renderAppPage({ files, owner = null }) {
       }
 
       .account-panel .field-row {
-        gap: 10px;
+        gap: 12px;
       }
 
       .account-panel .primary,
       .account-panel .secondary {
         width: fit-content;
         min-width: 0;
-        padding: 10px 14px;
+        padding: 9px 14px;
         border-radius: 12px;
         font-size: 0.88rem;
       }
 
       .panel-copy {
-        margin: -2px 0 2px;
-        max-width: 440px;
+        margin: -2px 0 0;
+        max-width: 420px;
         color: rgba(222, 235, 248, 0.78);
-        font-size: 0.76rem;
-        line-height: 1.4;
+        font-size: 0.74rem;
+        line-height: 1.35;
+      }
+
+      .account-panel.password-panel {
+        gap: 8px;
+      }
+
+      .account-panel.password-panel .field {
+        gap: 3px;
+      }
+
+      .account-panel.password-panel .field-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .account-panel.password-panel input {
+        padding: 8px 12px;
+        min-height: 36px;
+      }
+
+      .account-panel.password-panel .panel-copy {
+        max-width: 400px;
       }
 
       .layout {
@@ -1060,7 +1102,7 @@ export function renderAppPage({ files, owner = null }) {
               <path fill="#e6c27f" d="M35 27c1 3 3 5 5 7 2 2 3 4 3 7 0 5-4 9-9 9s-9-4-9-9c0-4 2-6 4-8 3-2 5-4 6-6z"/>
             </svg>
           </span>
-          <span class="brand-word">BurnBox</span>
+          <span class="brand-word">BurnB<span class="brand-target" aria-label="o" role="img"></span>x</span>
         </div>
         <div class="tagline">Your Private R2 Drop with short-lived controlled sharing.</div>
       </div>
@@ -1105,7 +1147,7 @@ export function renderAppPage({ files, owner = null }) {
                 <button class="ghost" type="button" id="toggleRecoveryCodes">Generate Backup Codes</button>
               </div>
               <p class="inline-note">Use backup codes only as an emergency fallback until email recovery is enabled.</p>
-              <form class="account-panel" id="changePasswordPanel">
+              <form class="account-panel password-panel" id="changePasswordPanel">
                 <div class="account-panel-title">
                   <strong>Password update</strong>
                   <button class="small-ghost" type="button" id="closePasswordForm">Close</button>
