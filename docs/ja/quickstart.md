@@ -95,8 +95,9 @@ npm run dev
 - 新規デプロイなら `Claim your BurnBox` を完了する
 - 旧環境のアップグレードなら `Upgrade your BurnBox security` を完了する
 - owner login が成功する
-- workspace account card から recovery email を追加・更新できる
+- この deployment で `Recovery email` を使うか、backup code のみを recovery path にするかを決める
 - `Change password`、`Generate Backup Codes`、`Sign Out Other Devices` が動作する
+- email recovery を使う方針なら、workspace account card から recovery email を追加・更新できる
 - テストファイルをアップロードする
 - multipart upload が finalization まで進む
 - 現在の baseline が大容量転送でも目立つ oscillation なく進むことを確認する

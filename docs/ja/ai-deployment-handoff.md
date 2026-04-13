@@ -22,7 +22,7 @@ AI は次の順で支援または実行するべきです。
    - manual claim code を使う場合だけ `CLAIM_KEY`
 6. Worker を deploy する
 7. owner claim または upgrade flow、upload、share 作成、share download を検証する
-8. workspace account controls、つまり recovery email、password change、backup-code generation、logout、`Sign Out Other Devices` を検証する
+8. workspace account controls、つまり password change、backup-code generation、logout、`Sign Out Other Devices` を検証し、recovery email は optional な operator-managed setting として扱う
 9. public link が失敗した場合は、まず `SHARE_LINK_SECRET`、`SHARE_BASE_URL`、`ALLOWED_SHARE_HOSTS`、route 設定を確認する
 
 ## 重要な制約
@@ -75,7 +75,7 @@ Rules:
 - Warn me before any force push, destructive action, or secret overwrite.
 - After deployment, verify:
   1. owner claim or upgrade works
-  2. recovery email and password change work
+  2. password change が動作し、recovery email は intentional に disabled にするか、enabled にするならその方針どおり動作する
   3. file upload works
   4. share creation works
   5. the stable link uses the public share host

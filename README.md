@@ -240,7 +240,7 @@ Read the technical notes here:
 - share revocation and download limits
 - file deletion with related share invalidation
 - owner-claim onboarding plus upgrade-path migration for workspace auth
-- in-product recovery email, password rotation, backup codes, and session/device reset
+- in-product password rotation, backup codes, optional recovery-email support, and session/device reset
 - minimal single-worker architecture
 
 ## Project Structure
@@ -307,7 +307,7 @@ npm run dev
 
 - a fresh deployment should show `Claim your BurnBox`
 - a legacy deployment should show the upgrade login path first
-- after upgrade or claim, the workspace should support owner sign-in, password change, recovery-email update, backup-code regeneration, and `Sign Out Other Devices`
+- after upgrade or claim, the workspace should support owner sign-in, password change, backup-code regeneration, and `Sign Out Other Devices`, with recovery email remaining an optional operator-managed setting
 
 ## Documentation
 
@@ -423,6 +423,8 @@ The third question was about ownership. A deployment password written into an en
 What remains is the hardest question of all: how to return gracefully from the middle of things. An interrupted upload is not just a failed request. It is a system in a partially-committed state. The next step is to make that state legible and recoverable without forcing a restart from zero.
 
 The documentation is written for any careful reader — human operator or AI coding assistant — who wants to carry a fresh fork into production without guessing. Placeholder domains are used throughout; keep personal infrastructure out of public version history. Hostname-style sharing is opt-in and requires explicit certificate management.
+
+Recovery email should also be understood in that operator-controlled way. BurnBox can support an operator-managed recovery email, but a given self-hosted deployment may intentionally leave that path disabled and rely on backup codes as the primary recovery fallback. That is an operational choice, not a half-finished feature.
 
 The Japanese documentation exists because good ideas travel better when they arrive in a familiar language. To the friends at Kyoto University who made that feel worth doing — thank you.
 

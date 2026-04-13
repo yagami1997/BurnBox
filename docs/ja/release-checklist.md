@@ -38,7 +38,7 @@ BurnBox 2.2.0 を共有環境へ上げる前に、このチェックリストを
 - `Reset with recovery code` が有効な owner email と未使用 recovery code を受け付ける
 - 一度使った recovery code を再利用できない
 - 無効な recovery 試行 5 回で一時ロックがかかる
-- workspace account card から `Recovery email` を追加または削除できる
+- この deployment で `Recovery email` を使うか決める。使わないなら backup code のみを intentional な recovery path として確認し、使うなら workspace account card から追加または削除できることを確認する
 - `Change password` で session version が更新され、古い session が無効化される
 - `Sign Out Other Devices` が現在の session を保持したまま他デバイスの session を無効化する
 - `Regenerate recovery codes` が現在の set を置き換え、新しい一覧を一度だけ返す

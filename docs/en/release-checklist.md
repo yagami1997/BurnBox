@@ -38,7 +38,7 @@ Use this checklist before promoting BurnBox 2.2.0 to a shared environment.
 - Confirm `Reset with recovery code` accepts a valid owner email and unused recovery code.
 - Confirm a used recovery code cannot be reused.
 - Confirm five invalid recovery attempts trigger a temporary lock.
-- Confirm `Recovery email` can be added or removed from the workspace account card.
+- Decide whether `Recovery email` is enabled for this deployment. If not, confirm the deployment intentionally relies on backup codes only. If yes, confirm it can be added or removed from the workspace account card.
 - Confirm `Change password` rotates the session version and invalidates older sessions.
 - Confirm `Sign Out Other Devices` invalidates other active sessions while preserving the current session.
 - Confirm `Regenerate recovery codes` replaces the current set and returns a fresh list once.

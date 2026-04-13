@@ -95,8 +95,9 @@ Check the main flow:
 - if this is a new deployment, complete `Claim your BurnBox`
 - if this is an upgraded deployment, complete `Upgrade your BurnBox security`
 - confirm owner sign-in works
-- confirm the workspace account card can add a recovery email
+- decide whether this deployment will use `Recovery email` or keep backup codes as the only recovery path
 - confirm `Change password`, `Generate Backup Codes`, and `Sign Out Other Devices` work
+- if email recovery is part of this deployment policy, confirm the workspace account card can add a recovery email
 - upload a test file
 - confirm multipart upload reaches finalization
 - confirm the current baseline can handle large transfers without visible oscillation

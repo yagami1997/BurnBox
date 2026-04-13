@@ -52,7 +52,7 @@ The third major shift is moving workspace authentication from a deployment-passw
 - existing deployments can migrate through an upgrade flow
 - password change, recovery, and device/session controls move into the workspace
 - the long-lived workspace password no longer belongs in deployment configuration
-- recovery email and backup codes give the workspace a product-level recovery model instead of a deployment-secret fallback
+- backup codes give the workspace a product-level recovery baseline instead of a deployment-secret fallback, while recovery email remains optional per operator policy
 
 ## Upload flow
 
@@ -177,7 +177,7 @@ This split is enforced in the Worker route layer.
 
 - owner identity
 - password hash and algorithm
-- recovery email
+- optional recovery email
 - session version
 - timestamps
 

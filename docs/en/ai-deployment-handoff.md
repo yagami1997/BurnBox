@@ -22,7 +22,7 @@ The AI should help the operator complete these tasks in order:
    - `CLAIM_KEY` if the deployment is using a manual setup key instead of a log-generated claim code
 6. Deploy the Worker.
 7. Validate owner claim or upgrade flow, upload, share creation, and direct share download.
-8. Verify workspace account controls: recovery email, password change, backup-code generation, logout, and `Sign Out Other Devices`.
+8. Verify workspace account controls: password change, backup-code generation, logout, and `Sign Out Other Devices`, with recovery email treated as an optional operator-managed setting.
 9. If public links fail, check `SHARE_LINK_SECRET`, `SHARE_BASE_URL`, `ALLOWED_SHARE_HOSTS`, and route coverage first.
 
 ## Important constraints
@@ -75,7 +75,7 @@ Rules:
 - Warn me before any force push, destructive action, or secret overwrite.
 - After deployment, verify:
   1. owner claim or upgrade works
-  2. recovery email and password change work
+  2. password change works, and recovery email is either intentionally left disabled or verified as an enabled operator choice
   3. file upload works
   4. share creation works
   5. the stable link uses the public share host

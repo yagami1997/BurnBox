@@ -19,7 +19,7 @@ BurnBox 2.2.0 also changes the operational ownership model:
 
 - new deployments are claimed inside the product
 - legacy deployments can upgrade from `ADMIN_PASSWORD` to an owner account
-- recovery email, password rotation, backup codes, and session reset now live inside the workspace
+- password rotation, backup codes, optional recovery-email support, and session reset now live inside the workspace
 
 ## Required Cloudflare resources
 
@@ -186,18 +186,19 @@ Validate in this order:
 2. If the deployment is new, complete `Claim your BurnBox`.
 3. If the deployment is an upgrade from the legacy password model, complete `Upgrade your BurnBox security`.
 4. Confirm owner login works.
-5. Confirm `Recovery email` can be added from the workspace account card.
+5. Decide whether this deployment will actually use `Recovery email`. It is optional and operator-managed; self-use deployments may intentionally leave it unset and rely on backup codes instead.
 6. Confirm `Change password`, `Generate Backup Codes`, and `Sign Out Other Devices` work from the workspace account controls.
-7. Upload one or more files.
-8. Confirm chunked upload reaches finalization and the files appear in the registry.
-9. Create a share.
-10. Confirm the returned stable URL uses the public share domain.
-11. Confirm the stable URL defaults to `/h/{publicHandle}`.
-12. Open the link and verify it downloads directly.
-13. If the link returns `503`, check that `SHARE_LINK_SECRET` is configured on the deployed Worker.
-14. Revoke the share and verify the link fails.
-15. Refresh the workspace from a different machine and confirm `Copy link` still appears for the active share.
-16. Confirm the public share domain does not expose `/api/*` or the workspace root.
+7. If this deployment intends to use email recovery, confirm `Recovery email` can be added from the workspace account card.
+8. Upload one or more files.
+9. Confirm chunked upload reaches finalization and the files appear in the registry.
+10. Create a share.
+11. Confirm the returned stable URL uses the public share domain.
+12. Confirm the stable URL defaults to `/h/{publicHandle}`.
+13. Open the link and verify it downloads directly.
+14. If the link returns `503`, check that `SHARE_LINK_SECRET` is configured on the deployed Worker.
+15. Revoke the share and verify the link fails.
+16. Refresh the workspace from a different machine and confirm `Copy link` still appears for the active share.
+17. Confirm the public share domain does not expose `/api/*` or the workspace root.
 
 ## Randomized privacy-oriented DNS naming
 

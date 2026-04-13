@@ -24,7 +24,7 @@ BurnBox 2.2.0 では、運用上の ownership model も変わりました。
 
 - 新規デプロイは product 内で claim する
 - 既存デプロイは `ADMIN_PASSWORD` から owner account へ upgrade できる
-- recovery email、password rotation、backup code、session reset は workspace 内で管理する
+- password rotation、backup code、optional な recovery email support、session reset は workspace 内で管理する
 
 ## 必要な Cloudflare リソース
 
@@ -180,18 +180,19 @@ npm run deploy
 2. 新規デプロイなら `Claim your BurnBox` を完了する
 3. 旧環境なら `Upgrade your BurnBox security` を完了する
 4. owner login が成功する
-5. workspace account card から recovery email を追加できる
+5. この deployment で `Recovery email` を本当に使うか決める。これは operator-managed な optional setting であり、自用 deployment では backup code のみを recovery path にする判断もありうる
 6. `Change password`、`Generate Backup Codes`、`Sign Out Other Devices` が動作する
-7. ファイルをアップロードできる
-8. multipart upload が finalization まで進む
-9. file list に表示される
-10. share を作成できる
-11. stable link が public share domain を使う
-12. stable link が `/h/{publicHandle}` になる
-13. 開くと直接 download が始まる
-14. `503` の場合は、デプロイ済み Worker に `SHARE_LINK_SECRET` が入っているか確認する
-15. 別端末から見ても active share に `Copy link` が出る
-16. public share domain から `/api/*` や workspace root が見えない
+7. email recovery を使う方針なら、workspace account card から recovery email を追加できる
+8. ファイルをアップロードできる
+9. multipart upload が finalization まで進む
+10. file list に表示される
+11. share を作成できる
+12. stable link が public share domain を使う
+13. stable link が `/h/{publicHandle}` になる
+14. 開くと直接 download が始まる
+15. `503` の場合は、デプロイ済み Worker に `SHARE_LINK_SECRET` が入っているか確認する
+16. 別端末から見ても active share に `Copy link` が出る
+17. public share domain から `/api/*` や workspace root が見えない
 
 ## privacy-oriented DNS 命名について
 
