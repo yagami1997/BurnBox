@@ -1,6 +1,6 @@
 # Security Policy
 
-*Last updated: April 13, 2026 at 01:56 AM PDT*
+*Last updated: April 13, 2026 at 6:06 AM PDT*
 
 ## Supported scope
 
@@ -8,6 +8,7 @@ Security issues are relevant for:
 
 - owner-account claim, upgrade, login, and recovery flows
 - session handling
+- private workspace route isolation and deployment-managed entry configuration
 - share-token generation and validation
 - R2 upload and download flows
 - D1 metadata integrity

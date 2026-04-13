@@ -1,14 +1,15 @@
-# BurnBox 2.2.0 Release Checklist
+# BurnBox 2.2.1 Release Checklist
 
-*Last updated: April 12, 2026 at 6:31 PM PDT*
+*Last updated: April 13, 2026 at 6:06 AM PDT*
 
-Use this checklist before promoting BurnBox 2.2.0 to a shared environment.
+Use this checklist before promoting BurnBox 2.2.1 to a shared environment.
 
 ## Environment
 
 - Confirm `SESSION_SECRET` is set.
 - Confirm `SHARE_LINK_SECRET` is set.
 - Confirm `APP_BASE_URL`, `SHARE_BASE_URL`, `ALLOWED_APP_HOSTS`, and `ALLOWED_SHARE_HOSTS` match the intended deployment.
+- If you are using a private workspace entry prefix, confirm `APP_ENTRY_PATH` is set to the intended exact route prefix.
 - If you are not using a log-generated claim code, confirm `CLAIM_KEY` is set as a one-time setup secret.
 
 ## Database
@@ -46,6 +47,9 @@ Use this checklist before promoting BurnBox 2.2.0 to a shared environment.
 ## Share and Workspace Regression
 
 - Upload a file and confirm multipart upload still completes.
+- If `APP_ENTRY_PATH` is enabled, confirm the workspace loads from that prefixed route and `/` does not expose the private workspace.
+- Confirm `Logout`, `Refresh`, and upload still work from the prefixed workspace route.
+- Intentionally interrupt one upload and confirm the failed multipart session is aborted instead of accumulating silently.
 - Create a share link and confirm the public URL resolves from the share domain.
 - Confirm download limits and expiration still work.
 - Delete a file and confirm its share links are revoked.

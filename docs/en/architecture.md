@@ -1,6 +1,6 @@
 # Architecture
 
-*Last updated: April 12, 2026 at 6:31 PM PDT*
+*Last updated: April 13, 2026 at 6:06 AM PDT*
 
 ## Overview
 
@@ -10,13 +10,14 @@ BurnBox is a compact Cloudflare-native control plane:
 - R2 stores file objects
 - D1 stores file metadata, upload state, share state, and audit logs
 
-BurnBox 2.2.0 has three major architectural layers:
+BurnBox 2.2.1 has four major architectural layers:
 
 - upload reliability through chunked multipart ingest
 - share-delivery separation through split domains and stable public handles
 - workspace account security through owner claim, upgrade flow, and in-product session control
+- private workspace route isolation plus operator-visible upload diagnostics
 
-The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.2.0 now ships owner-claim auth, legacy upgrade flow, and in-product account security on top of that baseline. The next implementation step is resumable upload.
+The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.2.1 now ships owner-claim auth, legacy upgrade flow, deployment-managed private-entry routing, upload diagnostics, and upload-abort cleanup on top of that baseline. The next implementation steps are a smaller frontend-JS maintainability pass and then resumable upload.
 
 One practical warning belongs at the architectural level:
 
@@ -53,6 +54,16 @@ The third major shift is moving workspace authentication from a deployment-passw
 - password change, recovery, and device/session controls move into the workspace
 - the long-lived workspace password no longer belongs in deployment configuration
 - backup codes give the workspace a product-level recovery baseline instead of a deployment-secret fallback, while recovery email remains optional per operator policy
+
+### 2.2.1: private-entry routing and upload observability
+
+The fourth major shift is operational hardening around the existing private workspace:
+
+- deployments may place the private workspace behind a deployment-managed route prefix such as `/ops`
+- private HTML routes and authenticated `/api/*` routes derive from the same server-controlled prefix
+- the workspace renders a read-only private-entry indicator instead of making routing editable in-product
+- upload diagnostics expose server-side multipart progress for unfinished or failed uploads
+- failed uploads now have an explicit abort path, and metadata-commit failure after multipart completion triggers compensating object deletion
 
 ## Upload flow
 
@@ -104,7 +115,7 @@ This flow is intentionally stateful. The difficulty is not only moving bytes int
 
 ## Auth hardening notes
 
-BurnBox 2.2.0 also adds security controls around the new auth layer:
+BurnBox 2.2.0 and 2.2.1 together add security controls around the new auth and routing layer:
 
 - failed owner sign-ins record a generic invalid-credentials reason
 - legacy upgrade login is rate-limited

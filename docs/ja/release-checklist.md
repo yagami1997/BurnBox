@@ -1,14 +1,15 @@
-# BurnBox 2.2.0 リリース前チェックリスト
+# BurnBox 2.2.1 リリース前チェックリスト
 
-*最終更新: April 12, 2026 at 6:31 PM PDT*
+*最終更新: April 13, 2026 at 6:06 AM PDT*
 
-BurnBox 2.2.0 を共有環境へ上げる前に、このチェックリストを使って確認してください。
+BurnBox 2.2.1 を共有環境へ上げる前に、このチェックリストを使って確認してください。
 
 ## Environment
 
 - `SESSION_SECRET` が設定されている
 - `SHARE_LINK_SECRET` が設定されている
 - `APP_BASE_URL`、`SHARE_BASE_URL`、`ALLOWED_APP_HOSTS`、`ALLOWED_SHARE_HOSTS` が想定どおりの値になっている
+- private workspace entry prefix を使う場合、`APP_ENTRY_PATH` が意図した route prefix に設定されている
 - log-generated claim code を使わない場合は、one-time setup secret として `CLAIM_KEY` が設定されている
 
 ## Database
@@ -46,6 +47,9 @@ BurnBox 2.2.0 を共有環境へ上げる前に、このチェックリストを
 ## Share and Workspace Regression
 
 - file を upload し、multipart upload が今までどおり完了する
+- `APP_ENTRY_PATH` を有効にしている場合、workspace がその prefixed route から開き、`/` では private workspace が露出しない
+- prefixed workspace route 上でも `Logout`、`Refresh`、upload が正常動作する
+- upload を意図的に中断したとき、failed multipart session が静かに残留し続けない
 - share link を作成し、public URL が share domain から解決される
 - download limit と expiration が今までどおり機能する
 - file を削除すると関連 share link も revoke される

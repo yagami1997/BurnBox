@@ -7,7 +7,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-export function renderAppPage({ files, owner = null }) {
+export function renderAppPage({ files, owner = null, apiBase = "/api", appEntryPath = "/" }) {
   const filesJson = JSON.stringify(files).replaceAll("<", "\\u003c");
   const safeOwner = owner
     ? {
@@ -1215,6 +1215,7 @@ export function renderAppPage({ files, owner = null }) {
                       <div><span>Storage</span><strong>R2 archive</strong></div>
                       <div><span>Upload mode</span><strong>5 MiB multipart slices</strong></div>
                       <div><span>Delete mode</span><strong>Remove file and revoke shares</strong></div>
+                      <div><span>Private entry</span><strong>${escapeHtml(appEntryPath || "/")}</strong></div>
                     </div>
                   </div>
                 </div>
@@ -1324,7 +1325,9 @@ export function renderAppPage({ files, owner = null }) {
       const boot = {
         authenticated: true,
         files: ${filesJson},
-        owner: ${ownerJson}
+        owner: ${ownerJson},
+        apiBase: ${JSON.stringify(String(apiBase || "/api").replace(/\/+$/, "") || "/api")},
+        appEntryPath: ${JSON.stringify(appEntryPath || "/")}
       };
       let currentFiles = Array.isArray(boot.files) ? [...boot.files] : [];
       const shareLinkStorageKey = "burnbox_share_links_v1";
@@ -1345,6 +1348,10 @@ export function renderAppPage({ files, owner = null }) {
       const uploadProgressLabel = document.getElementById("uploadProgressLabel");
       const uploadProgressValue = document.getElementById("uploadProgressValue");
       const uploadProgressSub = document.getElementById("uploadProgressSub");
+
+      function apiUrl(path) {
+        return boot.apiBase + path;
+      }
 
       function readStoredShareLinks() {
         try {
@@ -1572,7 +1579,7 @@ export function renderAppPage({ files, owner = null }) {
             if (!confirm("Delete this file and revoke related shares?")) return;
 
             setStatus("Deleting file...", false, "Removing the object and clearing linked access.");
-            const response = await fetch(\`/api/files/\${fileId}\`, { method: "DELETE" });
+            const response = await fetch(apiUrl(\`/files/\${fileId}\`), { method: "DELETE" });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
               setStatus(data.error || "Failed to delete file.", true);
@@ -1597,7 +1604,7 @@ export function renderAppPage({ files, owner = null }) {
           button.addEventListener("click", async () => {
             const shareId = button.getAttribute("data-revoke-share-id");
             setStatus("Revoking share...", false, "The link will stop working immediately.");
-            const response = await fetch(\`/api/shares/\${shareId}/revoke\`, { method: "POST" });
+            const response = await fetch(apiUrl(\`/shares/\${shareId}/revoke\`), { method: "POST" });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
               setStatus(data.error || "Failed to revoke share.", true);
@@ -1632,7 +1639,7 @@ export function renderAppPage({ files, owner = null }) {
 
       async function refreshFiles() {
         setStatus("Refreshing registry...", false, "Loading the latest file and share state.");
-        const response = await fetch("/api/files");
+        const response = await fetch(apiUrl("/files"));
         if (!response.ok) {
           setStatus("Failed to load files.", true);
           return;
@@ -1715,7 +1722,7 @@ export function renderAppPage({ files, owner = null }) {
 
           let response;
           try {
-            response = await fetch(\`/api/files/\${input.fileId}/upload-part?partNumber=\${input.partNumber}\`, {
+            response = await fetch(apiUrl(\`/files/\${input.fileId}/upload-part?partNumber=\${input.partNumber}\`), {
               method: "POST",
               headers: {
                 "content-type": "application/octet-stream",
@@ -1750,6 +1757,18 @@ export function renderAppPage({ files, owner = null }) {
       async function waitForRetry(attempt) {
         const delayMs = Math.min(400 * 2 ** (attempt - 1), 2500);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+
+      async function abortUpload(fileId) {
+        if (!fileId) {
+          return;
+        }
+
+        try {
+          await fetch(apiUrl(\`/files/\${fileId}/abort-upload\`), { method: "POST" });
+        } catch {
+          // Ignore cleanup failures after the upload has already failed.
+        }
       }
 
       {
@@ -1793,15 +1812,15 @@ export function renderAppPage({ files, owner = null }) {
 
         document.getElementById("refreshButton")?.addEventListener("click", refreshFiles);
         document.getElementById("logoutButton")?.addEventListener("click", async () => {
-          await fetch("/api/auth/logout", { method: "POST" });
-          location.reload();
+          await fetch(apiUrl("/auth/logout"), { method: "POST" });
+          location.href = boot.appEntryPath;
         });
         const signOutAllButton = document.getElementById("signOutAllButton");
         signOutAllButton?.addEventListener("click", async () => {
           const originalLabel = signOutAllButton.textContent;
           signOutAllButton.disabled = true;
           setStatus("Resetting device sessions...", false, "Other signed-in devices will need to authenticate again.");
-          const response = await fetch("/api/auth/sign-out-all", { method: "POST" });
+          const response = await fetch(apiUrl("/auth/sign-out-all"), { method: "POST" });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) {
             signOutAllButton.disabled = false;
@@ -1882,7 +1901,7 @@ export function renderAppPage({ files, owner = null }) {
           }
 
           setStatus("Creating share...", false, "Generating a controlled external access window.");
-          const response = await fetch(\`/api/files/\${fileId}/shares\`, {
+          const response = await fetch(apiUrl(\`/files/\${fileId}/shares\`), {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ expiresInHours, maxDownloads })
@@ -1914,7 +1933,7 @@ export function renderAppPage({ files, owner = null }) {
           }
 
           setStatus("Updating password...", false, "Saving the new owner password and refreshing the current session.");
-          const response = await fetch("/api/auth/change-password", {
+          const response = await fetch(apiUrl("/auth/change-password"), {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -1941,7 +1960,7 @@ export function renderAppPage({ files, owner = null }) {
           setStatus("Saving recovery email...", false, nextRecoveryEmail
             ? "Updating the recovery email stored for this workspace."
             : "Removing the stored recovery email from this workspace.");
-          const response = await fetch("/api/auth/recovery-email", {
+          const response = await fetch(apiUrl("/auth/recovery-email"), {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -1972,7 +1991,7 @@ export function renderAppPage({ files, owner = null }) {
           event.preventDefault();
           const form = event.currentTarget;
           setStatus("Regenerating recovery codes...", false, "Replacing the current fallback code set.");
-          const response = await fetch("/api/auth/recovery-codes/regenerate", {
+          const response = await fetch(apiUrl("/auth/recovery-codes/regenerate"), {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -2007,7 +2026,7 @@ export function renderAppPage({ files, owner = null }) {
           clearUploadProgress();
 
           setStatus("Preparing upload...", false, "Creating a signed direct-upload plan.");
-          const initResponse = await fetch("/api/files/init-upload", {
+          const initResponse = await fetch(apiUrl("/files/init-upload"), {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -2026,6 +2045,7 @@ export function renderAppPage({ files, owner = null }) {
           try {
             await uploadFileInChunks(file, initData);
           } catch (error) {
+            await abortUpload(initData.fileId);
             clearUploadProgress();
             setStatus(String(error?.message || "Failed to upload file chunks."), true);
             return;
@@ -2035,7 +2055,7 @@ export function renderAppPage({ files, owner = null }) {
           try {
             setStatus("Finalizing upload...", false, "Completing multipart assembly and writing metadata into D1.");
             setUploadProgress(95, "Upload finished", "All parts are uploaded. Finalizing in R2 and writing the D1 file record.", "finalizing");
-            const completeResponse = await fetch("/api/files/complete-upload", {
+            const completeResponse = await fetch(apiUrl("/files/complete-upload"), {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({
@@ -2050,6 +2070,7 @@ export function renderAppPage({ files, owner = null }) {
               throw new Error(completeData.error || "Failed to save file record.");
             }
           } catch (error) {
+            await abortUpload(initData.fileId);
             clearUploadProgress();
             setStatus(String(error?.message || "Failed to save file record."), true);
             return;

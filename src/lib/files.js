@@ -139,8 +139,8 @@ export async function completeUpload(env, input) {
     .bind("processing", processingAt, input.fileId)
     .run();
 
+  let completedObject = null;
   try {
-    let completedObject;
     try {
       completedObject = await completeMultipartUpload(env, {
         storageKey: uploadPlan.storage_key,
@@ -191,6 +191,9 @@ export async function completeUpload(env, input) {
       createdAt: completedAt,
     };
   } catch (error) {
+    if (completedObject) {
+      await safeDeleteObject(env, uploadPlan.storage_key);
+    }
     try {
       await env.DB.prepare(`update upload_plans set status = ?, updated_at = ? where file_id = ?`)
         .bind("failed", new Date().toISOString(), uploadPlan.file_id)
@@ -200,6 +203,93 @@ export async function completeUpload(env, input) {
     }
     throw error;
   }
+}
+
+export async function abortUploadPlan(env, fileId) {
+  const uploadPlan = await getUploadPlan(env, fileId);
+  if (!uploadPlan) {
+    return { status: "missing" };
+  }
+  if (uploadPlan.completed_at || uploadPlan.status === "ready") {
+    return { status: "already_completed" };
+  }
+
+  await safeAbortMultipartUpload(env, uploadPlan.storage_key, uploadPlan.multipart_upload_id);
+  const updatedAt = new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(`update upload_plans set status = ?, updated_at = ? where file_id = ?`)
+      .bind("aborted", updatedAt, uploadPlan.file_id),
+    env.DB.prepare(`delete from upload_parts where file_id = ?`)
+      .bind(uploadPlan.file_id),
+  ]);
+
+  return {
+    status: "aborted",
+    fileId: uploadPlan.file_id,
+    storageKey: uploadPlan.storage_key,
+  };
+}
+
+export async function getUploadDiagnostics(env, fileId) {
+  const uploadPlan = await getUploadPlan(env, fileId);
+  if (!uploadPlan) {
+    return null;
+  }
+
+  const [summaryResult, recentPartsResult] = await Promise.all([
+    env.DB.prepare(
+      `select
+         count(*) as uploaded_parts,
+         max(part_number) as last_confirmed_part,
+         max(created_at) as last_part_recorded_at
+       from upload_parts
+       where file_id = ?`,
+    )
+      .bind(fileId)
+      .first(),
+    env.DB.prepare(
+      `select part_number, size, created_at
+       from upload_parts
+       where file_id = ?
+       order by part_number desc
+       limit 3`,
+    )
+      .bind(fileId)
+      .all(),
+  ]);
+
+  const totalParts = Math.max(
+    1,
+    Math.ceil(Number(uploadPlan.declared_size || 0) / Number(uploadPlan.chunk_size || CHUNK_SIZE)),
+  );
+  let uploadedParts = Number(summaryResult?.uploaded_parts || 0);
+  let lastConfirmedPart = Number(summaryResult?.last_confirmed_part || 0);
+  let lastPartRecordedAt = summaryResult?.last_part_recorded_at || uploadPlan.completed_at || null;
+  if (uploadPlan.status === "ready" && uploadedParts === 0) {
+    uploadedParts = totalParts;
+    lastConfirmedPart = totalParts;
+    lastPartRecordedAt = uploadPlan.completed_at || uploadPlan.updated_at || lastPartRecordedAt;
+  }
+  const recentParts = (recentPartsResult.results || [])
+    .map((row) => ({
+      partNumber: Number(row.part_number),
+      size: Number(row.size || 0),
+      recordedAt: row.created_at,
+    }))
+    .sort((left, right) => left.partNumber - right.partNumber);
+
+  return {
+    fileId: uploadPlan.file_id,
+    status: uploadPlan.status,
+    declaredSize: Number(uploadPlan.declared_size || 0),
+    chunkSize: Number(uploadPlan.chunk_size || CHUNK_SIZE),
+    totalParts,
+    uploadedParts,
+    lastConfirmedPart,
+    lastPartRecordedAt,
+    planUpdatedAt: uploadPlan.updated_at || uploadPlan.created_at || null,
+    recentParts,
+  };
 }
 
 export async function deleteFile(env, fileId) {
@@ -303,6 +393,14 @@ async function safeAbortMultipartUpload(env, storageKey, multipartUploadId) {
     await upload.abort();
   } catch {
     // Ignore abort failures while cleaning up failed initialization.
+  }
+}
+
+async function safeDeleteObject(env, storageKey) {
+  try {
+    await env.R2_BUCKET.delete(storageKey);
+  } catch {
+    // Ignore cleanup failures while preserving the original write error.
   }
 }
 

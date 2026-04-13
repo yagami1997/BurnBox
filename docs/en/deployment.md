@@ -1,10 +1,10 @@
 # Deployment
 
-*Last updated: April 12, 2026 at 6:31 PM PDT*
+*Last updated: April 13, 2026 at 6:06 AM PDT*
 
 ## Overview
 
-BurnBox 2.2.0 is designed around a split-domain deployment model plus an owner-account auth flow:
+BurnBox 2.2.1 is designed around a split-domain deployment model plus an owner-account auth flow:
 
 - a private workspace domain for authenticated administration, such as `https://console.example.com`
 - a public share domain for external file delivery, such as `https://relay.example.net`
@@ -15,11 +15,12 @@ This split exists for privacy and operational clarity:
 - the public surface should not expose admin routes
 - share routing and workspace routing can evolve independently
 
-BurnBox 2.2.0 also changes the operational ownership model:
+BurnBox 2.2.1 also changes the operational ownership model:
 
 - new deployments are claimed inside the product
 - legacy deployments can upgrade from `ADMIN_PASSWORD` to an owner account
 - password rotation, backup codes, optional recovery-email support, and session reset now live inside the workspace
+- deployments may optionally move the private workspace behind a deployment-managed entry prefix such as `/ops`
 
 ## Required Cloudflare resources
 
@@ -125,9 +126,11 @@ SHARE_BASE_URL = "https://relay.example.net"
 SHARE_SUBDOMAIN_BASE_DOMAIN = "relay.example.net"
 ALLOWED_APP_HOSTS = "console.example.com"
 ALLOWED_SHARE_HOSTS = "relay.example.net"
+APP_ENTRY_PATH = "/ops"
 ```
 
 If you are not enabling hostname-style sharing yet, omit `SHARE_SUBDOMAIN_BASE_DOMAIN`.
+If you do not want a prefixed private workspace entry, omit `APP_ENTRY_PATH` and BurnBox will continue to serve the private workspace from `/`.
 
 ## Secrets
 
@@ -189,16 +192,17 @@ Validate in this order:
 5. Decide whether this deployment will actually use `Recovery email`. It is optional and operator-managed; self-use deployments may intentionally leave it unset and rely on backup codes instead.
 6. Confirm `Change password`, `Generate Backup Codes`, and `Sign Out Other Devices` work from the workspace account controls.
 7. If this deployment intends to use email recovery, confirm `Recovery email` can be added from the workspace account card.
-8. Upload one or more files.
-9. Confirm chunked upload reaches finalization and the files appear in the registry.
-10. Create a share.
-11. Confirm the returned stable URL uses the public share domain.
-12. Confirm the stable URL defaults to `/h/{publicHandle}`.
-13. Open the link and verify it downloads directly.
-14. If the link returns `503`, check that `SHARE_LINK_SECRET` is configured on the deployed Worker.
-15. Revoke the share and verify the link fails.
-16. Refresh the workspace from a different machine and confirm `Copy link` still appears for the active share.
-17. Confirm the public share domain does not expose `/api/*` or the workspace root.
+8. If `APP_ENTRY_PATH` is configured, confirm the private workspace opens from that prefixed route and `/` does not expose the workspace.
+9. Upload one or more files.
+10. Confirm chunked upload reaches finalization and the files appear in the registry.
+11. Create a share.
+12. Confirm the returned stable URL uses the public share domain.
+13. Confirm the stable URL defaults to `/h/{publicHandle}`.
+14. Open the link and verify it downloads directly.
+15. If the link returns `503`, check that `SHARE_LINK_SECRET` is configured on the deployed Worker.
+16. Revoke the share and verify the link fails.
+17. Refresh the workspace from a different machine and confirm `Copy link` still appears for the active share.
+18. Confirm the public share domain does not expose `/api/*` or the workspace root.
 
 ## Randomized privacy-oriented DNS naming
 

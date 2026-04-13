@@ -1,6 +1,6 @@
 # クイックスタート
 
-*最終更新: April 12, 2026 at 6:31 PM PDT*
+*最終更新: April 13, 2026 at 6:06 AM PDT*
 
 ## 要件
 
@@ -29,11 +29,13 @@ npm install
 - account 変数
 - workspace hostname
 - share hostname
+- optional `APP_ENTRY_PATH`
 
 公開文書で使う推奨 placeholder:
 
 - workspace: `console.example.com`
 - share: `relay.example.net`
+- optional private entry prefix: `/ops`
 
 ## 3. Database schema の適用
 
@@ -98,6 +100,7 @@ npm run dev
 - この deployment で `Recovery email` を使うか、backup code のみを recovery path にするかを決める
 - `Change password`、`Generate Backup Codes`、`Sign Out Other Devices` が動作する
 - email recovery を使う方針なら、workspace account card から recovery email を追加・更新できる
+- `APP_ENTRY_PATH` を使う場合、その prefixed route でも workspace が正常動作する
 - テストファイルをアップロードする
 - multipart upload が finalization まで進む
 - 現在の baseline が大容量転送でも目立つ oscillation なく進むことを確認する

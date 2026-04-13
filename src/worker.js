@@ -12,7 +12,7 @@ import {
   updateRecoveryEmail,
   upgradeLegacyOwner,
 } from "./lib/auth.js";
-import { completeUpload, createUploadPlan, deleteFile, uploadFilePart } from "./lib/files.js";
+import { abortUploadPlan, completeUpload, createUploadPlan, deleteFile, getUploadDiagnostics, uploadFilePart } from "./lib/files.js";
 import { html, json, noContent, readJson, timingSafeEqual, withDefaultHeaders } from "./lib/http.js";
 import { renderAuthPage } from "./lib/auth-layout.js";
 import { renderAppPage } from "./lib/layout.js";
@@ -50,6 +50,11 @@ export default {
 
 async function route(request, env) {
   const url = new URL(request.url);
+  const privateEntryPath = getAppEntryPath(env);
+  const appEntryPath = privateEntryPath || "/";
+  const apiBase = buildPrivateApiBase(privateEntryPath);
+  const recoverPath = buildPrivateRecoverPath(privateEntryPath);
+  const privateRoutePath = stripPrivateEntryPath(url.pathname, privateEntryPath);
   const host = (request.headers.get("host") || url.hostname || "").toLowerCase();
   const appHosts = parseHostList(env.ALLOWED_APP_HOSTS);
   const shareHosts = parseHostList(env.ALLOWED_SHARE_HOSTS);
@@ -61,7 +66,7 @@ async function route(request, env) {
   const isKnownAppHost = appHosts.has(host);
   const isKnownShareHost = shareHosts.has(host);
   const isPublicHost = isKnownShareHost || isShareSubdomainHost;
-  const isApiPath = url.pathname.startsWith("/api/");
+  const isApiPath = Boolean(privateRoutePath && privateRoutePath.startsWith("/api/"));
   const isAppSurfacePath = request.method === "GET" && url.pathname === "/";
   const isShareRoute = url.pathname === "/h"
     || url.pathname === "/h/"
@@ -93,41 +98,54 @@ async function route(request, env) {
     return notFoundForRequest(request);
   }
 
-  if (!isPublicHost && request.method === "GET" && url.pathname === "/recover") {
+  if (!isPublicHost && privateRoutePath === null) {
+    return notFoundForRequest(request);
+  }
+
+  if (!isPublicHost && request.method === "GET" && privateRoutePath === "/recover") {
     return html(renderAuthPage({
       view: "recover",
       ownerEmail: authState.owner?.email || "",
+      apiBase,
+      appEntryPath,
+      recoverPath,
     }));
   }
 
-  if (request.method === "GET" && url.pathname === "/") {
+  if (request.method === "GET" && privateRoutePath === "/") {
     if (authState.state === "active" && activeOwner) {
       const files = await listFiles(env);
-      return html(renderAppPage({ files, owner: activeOwner }));
+      return html(renderAppPage({ files, owner: activeOwner, apiBase, appEntryPath }));
     }
 
     if (authState.state === "unclaimed") {
       return html(renderAuthPage({
         view: "claim",
         claimCodeRequired: authState.claimCodeRequired,
+        apiBase,
+        appEntryPath,
+        recoverPath,
       }));
     }
 
     if (authState.state === "upgrade_required" && hasUpgradeSession) {
-      return html(renderAuthPage({ view: "upgrade" }));
+      return html(renderAuthPage({ view: "upgrade", apiBase, appEntryPath, recoverPath }));
     }
 
     if (authState.state === "upgrade_required") {
-      return html(renderAuthPage({ view: "legacy-login" }));
+      return html(renderAuthPage({ view: "legacy-login", apiBase, appEntryPath, recoverPath }));
     }
 
     return html(renderAuthPage({
       view: "login",
       ownerEmail: authState.owner?.email || "",
+      apiBase,
+      appEntryPath,
+      recoverPath,
     }));
   }
 
-  if (request.method === "GET" && url.pathname === "/api/auth/session") {
+  if (request.method === "GET" && privateRoutePath === "/api/auth/session") {
     return json({
       authenticated: Boolean(activeOwner),
       authState: authState.state,
@@ -136,7 +154,7 @@ async function route(request, env) {
     });
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/claim") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/claim") {
     if (authState.state !== "unclaimed") {
       return json({ error: "Workspace is already claimed" }, { status: 409 });
     }
@@ -177,7 +195,7 @@ async function route(request, env) {
     }
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/login") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/login") {
     const body = await readJson(request);
     if (authState.state === "upgrade_required") {
       if (!body?.password) {
@@ -245,7 +263,7 @@ async function route(request, env) {
     );
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/upgrade") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/upgrade") {
     if (!hasUpgradeSession || authState.state !== "upgrade_required") {
       return json({ error: "Upgrade session is required" }, { status: 401 });
     }
@@ -285,7 +303,7 @@ async function route(request, env) {
     }
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/recover-with-code") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/recover-with-code") {
     const body = await readJson(request);
     if (!body?.email || !body?.recoveryCode || !body?.newPassword) {
       return json({ error: "Email, recoveryCode, and newPassword are required" }, { status: 400 });
@@ -318,7 +336,7 @@ async function route(request, env) {
     }
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/change-password") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/change-password") {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -354,7 +372,7 @@ async function route(request, env) {
     }
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/recovery-codes/regenerate") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/recovery-codes/regenerate") {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -373,7 +391,7 @@ async function route(request, env) {
     }
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/recovery-email") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/recovery-email") {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -403,7 +421,7 @@ async function route(request, env) {
     }
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/sign-out-all") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/sign-out-all") {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -427,7 +445,7 @@ async function route(request, env) {
     }
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/logout") {
+  if (request.method === "POST" && privateRoutePath === "/api/auth/logout") {
     return noContent({
       headers: {
         "set-cookie": clearSessionCookie(),
@@ -435,7 +453,7 @@ async function route(request, env) {
     });
   }
 
-  if (request.method === "GET" && url.pathname === "/api/files") {
+  if (request.method === "GET" && privateRoutePath === "/api/files") {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -444,7 +462,7 @@ async function route(request, env) {
     return json({ files });
   }
 
-  if (request.method === "POST" && url.pathname === "/api/files/init-upload") {
+  if (request.method === "POST" && privateRoutePath === "/api/files/init-upload") {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -485,12 +503,13 @@ async function route(request, env) {
     return json(uploadPlan);
   }
 
-  if (request.method === "POST" && url.pathname.startsWith("/api/files/") && url.pathname.endsWith("/upload-part")) {
+  const uploadPartMatch = privateRoutePath?.match(/^\/api\/files\/([^/]+)\/upload-part\/?$/);
+  if (request.method === "POST" && uploadPartMatch) {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const fileId = url.pathname.replace("/api/files/", "").replace("/upload-part", "").replace(/\/$/, "");
+    const fileId = decodeURIComponent(uploadPartMatch[1]);
     const partNumber = Number(url.searchParams.get("partNumber"));
 
     if (!fileId) {
@@ -532,7 +551,50 @@ async function route(request, env) {
     return json(uploadedPart, { status: 201 });
   }
 
-  if (request.method === "POST" && url.pathname === "/api/files/complete-upload") {
+  const uploadDiagnosticsMatch = privateRoutePath?.match(/^\/api\/files\/([^/]+)\/upload-diagnostics\/?$/);
+  if (request.method === "GET" && uploadDiagnosticsMatch) {
+    if (!activeOwner) {
+      return json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const fileId = decodeURIComponent(uploadDiagnosticsMatch[1]);
+    const diagnostics = await getUploadDiagnostics(env, fileId);
+    if (!diagnostics) {
+      return json({ error: "Upload plan not found" }, { status: 404 });
+    }
+
+    return json(diagnostics);
+  }
+
+  const abortUploadMatch = privateRoutePath?.match(/^\/api\/files\/([^/]+)\/abort-upload\/?$/);
+  if (request.method === "POST" && abortUploadMatch) {
+    if (!activeOwner) {
+      return json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const fileId = decodeURIComponent(abortUploadMatch[1]);
+    const aborted = await abortUploadPlan(env, fileId);
+    if (aborted.status === "missing") {
+      return json({ error: "Upload plan not found" }, { status: 404 });
+    }
+    if (aborted.status === "already_completed") {
+      return json({ error: "Upload is already complete" }, { status: 409 });
+    }
+
+    await recordAuditLog(env, {
+      actor: activeOwner.id,
+      action: "file.upload_aborted",
+      targetType: "file",
+      targetId: fileId,
+      meta: {
+        storageKey: aborted.storageKey,
+      },
+    });
+
+    return json({ success: true, status: aborted.status });
+  }
+
+  if (request.method === "POST" && privateRoutePath === "/api/files/complete-upload") {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -580,12 +642,13 @@ async function route(request, env) {
     return json({ file }, { status: 201 });
   }
 
-  if (request.method === "DELETE" && url.pathname.startsWith("/api/files/")) {
+  const deleteFileMatch = privateRoutePath?.match(/^\/api\/files\/([^/]+)\/?$/);
+  if (request.method === "DELETE" && deleteFileMatch) {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const fileId = url.pathname.replace("/api/files/", "");
+    const fileId = decodeURIComponent(deleteFileMatch[1]);
     if (!fileId) {
       return json({ error: "File id is required" }, { status: 400 });
     }
@@ -608,12 +671,13 @@ async function route(request, env) {
     return json({ success: true });
   }
 
-  if (request.method === "POST" && url.pathname.startsWith("/api/files/") && url.pathname.endsWith("/shares")) {
+  const createShareMatch = privateRoutePath?.match(/^\/api\/files\/([^/]+)\/shares\/?$/);
+  if (request.method === "POST" && createShareMatch) {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const fileId = url.pathname.replace("/api/files/", "").replace("/shares", "").replace(/\/$/, "");
+    const fileId = decodeURIComponent(createShareMatch[1]);
     const body = await readJson(request);
     const expiresInHours = body?.expiresInHours === null || body?.expiresInHours === ""
       ? null
@@ -674,12 +738,13 @@ async function route(request, env) {
     }, { status: 201 });
   }
 
-  if (request.method === "POST" && url.pathname.startsWith("/api/shares/") && url.pathname.endsWith("/revoke")) {
+  const revokeShareMatch = privateRoutePath?.match(/^\/api\/shares\/([^/]+)\/revoke\/?$/);
+  if (request.method === "POST" && revokeShareMatch) {
     if (!activeOwner) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const shareId = url.pathname.replace("/api/shares/", "").replace("/revoke", "").replace(/\/$/, "");
+    const shareId = decodeURIComponent(revokeShareMatch[1]);
     if (!shareId) {
       return json({ error: "Share id is required" }, { status: 400 });
     }
@@ -795,6 +860,50 @@ async function route(request, env) {
 function normalizeBaseUrl(value) {
   if (!value) return null;
   return String(value).trim().replace(/\/+$/, "");
+}
+
+function getAppEntryPath(env) {
+  const raw = String(env.APP_ENTRY_PATH || "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (!raw.startsWith("/")) {
+    throw new Error("APP_ENTRY_PATH must start with '/'");
+  }
+  if (raw === "/") {
+    throw new Error("APP_ENTRY_PATH cannot be '/'");
+  }
+  if (raw.endsWith("/")) {
+    throw new Error("APP_ENTRY_PATH cannot end with '/'");
+  }
+  if (/\s/.test(raw)) {
+    throw new Error("APP_ENTRY_PATH cannot contain whitespace");
+  }
+  if (raw.includes("//")) {
+    throw new Error("APP_ENTRY_PATH cannot contain repeated slashes");
+  }
+  return raw;
+}
+
+function buildPrivateApiBase(privateEntryPath) {
+  return privateEntryPath ? `${privateEntryPath}/api` : "/api";
+}
+
+function buildPrivateRecoverPath(privateEntryPath) {
+  return privateEntryPath ? `${privateEntryPath}/recover` : "/recover";
+}
+
+function stripPrivateEntryPath(pathname, privateEntryPath) {
+  if (!privateEntryPath) {
+    return pathname;
+  }
+  if (pathname === privateEntryPath) {
+    return "/";
+  }
+  if (pathname.startsWith(`${privateEntryPath}/`)) {
+    return pathname.slice(privateEntryPath.length) || "/";
+  }
+  return null;
 }
 
 function parseHostList(value) {

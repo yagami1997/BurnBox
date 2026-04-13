@@ -1,6 +1,6 @@
 # Documentation
 
-*Last updated: April 12, 2026 at 6:31 PM PDT*
+*Last updated: April 13, 2026 at 6:06 AM PDT*
 
 This directory contains the public operator and engineering documentation for BurnBox.
 
@@ -23,7 +23,7 @@ That path covers:
 - D1 migration order
 - required secrets including `SESSION_SECRET`, `SHARE_LINK_SECRET`, and one-time claim setup
 - first-run owner claim or legacy-upgrade flow
-- post-deploy validation for owner sign-in, recovery controls, upload, and public share links
+- post-deploy validation for owner sign-in, recovery controls, private-entry behavior, upload, and public share links
 
 ## English
 

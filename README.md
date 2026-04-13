@@ -74,6 +74,29 @@ Publishing it is useful for three reasons:
 
 ## Changelog
 
+### April 13, 2026 · BurnBox 2.2.1 Upload Diagnostics and Private Entry Release · 6:06 AM PDT
+
+- ships deployment-managed private workspace entry support through `APP_ENTRY_PATH`
+- moves private workspace pages and private API routes under the derived private entry prefix instead of exposing the admin surface at the root path by default
+- adds operator-visible `Private entry` display inside the workspace without making the route editable from the UI
+- adds upload-diagnostics aggregation for unfinished or failed uploads so operators can inspect multipart progress from durable server-side state
+- hardens multipart consistency with explicit abort cleanup on failed uploads and compensating object deletion when metadata commit fails after multipart completion
+- adds a private-entry smoke check to keep prefixed workspace routing from regressing
+- keeps the owner-account auth baseline from 2.2.0 intact while preparing a smaller frontend-JS refactor before resumable upload
+
+Developer guidance for this release:
+
+- [Quickstart](docs/en/quickstart.md)
+- [Deployment](docs/en/deployment.md)
+- [Architecture](docs/en/architecture.md)
+- [Development Plan](docs/en/development-plan.md)
+- [Release Checklist](docs/en/release-checklist.md)
+- [Troubleshooting](docs/en/troubleshooting.md)
+- [Documentation index](docs/README.md)
+
+<details>
+<summary>Older changelog entries</summary>
+
 ### April 12, 2026 · BurnBox 2.2.0 Owner Account and Security Upgrade · 8:36 PM PDT
 
 - ships owner-account authentication inside the product instead of relying on a long-lived deployment password
@@ -92,9 +115,6 @@ Developer guidance for this release:
 - [Development Plan](docs/en/development-plan.md)
 - [Release Checklist](docs/en/release-checklist.md)
 - [Documentation index](docs/README.md)
-
-<details>
-<summary>Older changelog entries</summary>
 
 ### April 11, 2026 · BurnBox 2.1.1 Reliability and Research Release · 12:18 PM PDT
 
@@ -196,7 +216,7 @@ BurnBox's current upload path reflects the lessons above.
 - the client owns transient retry behavior, while the Worker keeps the execution path short and legible
 - current testing has validated stable completion through `4.3 GB / 870 parts` and `11 GB / 2200 parts`
 
-This does not mean the upload problem is "solved forever". It means the system is being shaped toward the correct problem statement: cumulative reliability, not only bandwidth or timeout tuning. The next implementation target is resumable upload so recovery can continue from durable part truth instead of restarting the entire transfer.
+This does not mean the upload problem is "solved forever". It means the system is being shaped toward the correct problem statement: cumulative reliability, not only bandwidth or timeout tuning. BurnBox 2.2.1 adds operator diagnostics, private-entry routing, and upload-failure cleanup around that baseline. The next implementation targets are a smaller frontend-JS refactor in 2.2.2 and resumable upload in 2.3.0 so recovery can continue from durable part truth instead of restarting the entire transfer.
 
 ## Technical Significance
 
@@ -210,7 +230,7 @@ BurnBox demonstrates a practical pattern for private file operations on the edge
 
 ## Core Architecture
 
-The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extended that base into a share-delivery redesign. The BurnBox 2.1.1 line hardened multipart behavior and clarified the research direction. The BurnBox 2.2.0 line moves workspace authentication from a deployment-password pattern toward owner claim, upgrade flow, and in-product account security.
+The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extended that base into a share-delivery redesign. The BurnBox 2.1.1 line hardened multipart behavior and clarified the research direction. The BurnBox 2.2.0 line moved workspace authentication from a deployment-password pattern toward owner claim, upgrade flow, and in-product account security. The BurnBox 2.2.1 line adds private-entry routing, upload diagnostics, and multipart cleanup hardening on top of that baseline.
 
 The current share architecture uses:
 
@@ -441,6 +461,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 Built for private file operations on the edge.  
 Maintained as a Cloudflare-native reference for controlled distribution workflows.
 
-<sub>Last updated: April 12, 2026 at 8:39 PM PDT</sub>
+<sub>Last updated: April 13, 2026 at 6:06 AM PDT</sub>
 
 </div>

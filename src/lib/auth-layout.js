@@ -7,8 +7,8 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true }) {
-  const boot = JSON.stringify({ view, ownerEmail, claimCodeRequired }).replaceAll("<", "\\u003c");
+export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true, apiBase = "/api", appEntryPath = "/", recoverPath = "/recover" }) {
+  const boot = JSON.stringify({ view, ownerEmail, claimCodeRequired, apiBase, appEntryPath, recoverPath }).replaceAll("<", "\\u003c");
   const faviconHref = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23143252' d='M34 4c2 7 7 12 12 17 6 6 9 13 9 20 0 13-9 23-23 23S9 54 9 41c0-9 5-16 11-22 5-5 10-9 12-17 0-2 1-2 2 0z'/%3E%3Cpath fill='%23ffffff' d='M35 14c1 5 5 8 8 11 4 4 6 8 6 13 0 8-6 14-14 14s-14-6-14-14c0-5 2-9 6-13 3-3 6-6 8-11z'/%3E%3Cpath fill='%23c23a2b' d='M35 27c1 3 3 5 5 7 2 2 3 4 3 7 0 5-4 9-9 9s-9-4-9-9c0-4 2-6 4-8 3-2 5-4 6-6z'/%3E%3C/svg%3E";
 
   return `<!doctype html>
@@ -230,6 +230,10 @@ export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true
         continueButton?.classList.remove("hidden");
       }
 
+      function apiUrl(path) {
+        return \`\${boot.apiBase}\${path}\`;
+      }
+
       async function postJson(url, body) {
         const response = await fetch(url, {
           method: "POST",
@@ -258,7 +262,7 @@ export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true
         }
         setStatus("Claiming workspace...", false, "Creating the owner account and recovery codes.");
         try {
-          const data = await postJson("/api/auth/claim", body);
+          const data = await postJson(apiUrl("/auth/claim"), body);
           showRecoveryCodes(data.recoveryCodes);
           setStatus("Workspace claimed.", false, "Recovery codes are shown below. Save them, then enter the workspace.");
         } catch (error) {
@@ -271,7 +275,7 @@ export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true
         const password = event.currentTarget.password.value;
         setStatus("Signing in...", false, "Verifying the legacy password so the workspace can be upgraded.");
         try {
-          await postJson("/api/auth/login", { password });
+          await postJson(apiUrl("/auth/login"), { password });
           location.reload();
         } catch (error) {
           setStatus(String(error.message || error), true, "The legacy password did not match.");
@@ -292,7 +296,7 @@ export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true
         }
         setStatus("Completing upgrade...", false, "Creating the owner account and switching BurnBox to the new auth model.");
         try {
-          const data = await postJson("/api/auth/upgrade", body);
+          const data = await postJson(apiUrl("/auth/upgrade"), body);
           showRecoveryCodes(data.recoveryCodes);
           setStatus("Upgrade complete.", false, "Recovery codes are shown below. Save them, then enter the workspace.");
         } catch (error) {
@@ -305,7 +309,7 @@ export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true
         const form = event.currentTarget;
         setStatus("Signing in...", false, "Verifying the owner account and issuing a signed session.");
         try {
-          await postJson("/api/auth/login", {
+          await postJson(apiUrl("/auth/login"), {
             email: form.email.value,
             password: form.password.value,
           });
@@ -330,9 +334,9 @@ export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true
         }
         setStatus("Resetting password...", false, "Verifying the recovery code and updating the owner password.");
         try {
-          await postJson("/api/auth/recover-with-code", body);
+          await postJson(apiUrl("/auth/recover-with-code"), body);
           setStatus("Password reset complete.", false, "Use the new password to sign in.");
-          setTimeout(() => location.href = "/", 1400);
+          setTimeout(() => location.href = boot.appEntryPath, 1400);
         } catch (error) {
           setStatus(String(error.message || error), true, "Check the recovery code and try again.");
         }
@@ -340,15 +344,15 @@ export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true
 
       document.querySelectorAll("[data-open-recovery]").forEach((button) => {
         button.addEventListener("click", () => {
-          location.href = "/recover";
+          location.href = boot.recoverPath;
         });
       });
       continueButton?.addEventListener("click", () => {
-        location.href = "/";
+        location.href = boot.appEntryPath;
       });
       document.querySelectorAll("[data-open-login]").forEach((button) => {
         button.addEventListener("click", () => {
-          location.href = "/";
+          location.href = boot.appEntryPath;
         });
       });
     </script>

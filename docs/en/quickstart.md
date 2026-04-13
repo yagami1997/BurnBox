@@ -1,6 +1,6 @@
 # Quickstart
 
-*Last updated: April 12, 2026 at 6:31 PM PDT*
+*Last updated: April 13, 2026 at 6:06 AM PDT*
 
 ## Requirements
 
@@ -29,11 +29,13 @@ Replace the placeholders with your own values:
 - account variables
 - workspace hostname
 - share hostname
+- optional `APP_ENTRY_PATH`
 
 Recommended placeholder model:
 
 - workspace: `console.example.com`
 - share: `relay.example.net`
+- optional private entry prefix: `/ops`
 
 ## 3. Apply the database schema
 
@@ -98,6 +100,7 @@ Check the main flow:
 - decide whether this deployment will use `Recovery email` or keep backup codes as the only recovery path
 - confirm `Change password`, `Generate Backup Codes`, and `Sign Out Other Devices` work
 - if email recovery is part of this deployment policy, confirm the workspace account card can add a recovery email
+- if `APP_ENTRY_PATH` is configured, confirm the workspace also works from that prefixed route and not only from `/`
 - upload a test file
 - confirm multipart upload reaches finalization
 - confirm the current baseline can handle large transfers without visible oscillation

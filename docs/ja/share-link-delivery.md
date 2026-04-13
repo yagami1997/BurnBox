@@ -1,6 +1,6 @@
 # 共有リンク配信アーキテクチャ
 
-*最終更新: April 12, 2026 at 6:31 PM PDT*
+*最終更新: April 13, 2026 at 6:06 AM PDT*
 
 ## 問題設定
 
@@ -10,7 +10,7 @@ BurnBox は当初、share link を現在の request origin から生成してい
 - 公開面と private 管理面の境界が曖昧になる
 - token path のリンクを別端末で再構築できない
 
-BurnBox 2.2.0 では、2.1.0 と 2.1.1 で行った share system の再設計を維持しつつ、現在の基準構成として整理しています。
+BurnBox 2.2.1 では、2.1.0 と 2.1.1 で行った share system の再設計を維持しつつ、現在の基準構成として整理しています。
 
 ## 設計目標
 
@@ -123,11 +123,11 @@ Worker は host ごとに役割を分けます。
   - admin UI を出さない
   - 認証 API を出さない
 
-これは 2.2.0 にも引き継がれた主要な privacy 改善です。
+これは 2.2.1 にも引き継がれた主要な privacy 改善です。
 
 ## Operator にとっての効果
 
-2.2.0 の基準構成でも:
+2.2.1 の基準構成でも:
 
 - 受信者は direct download を使える
 - operator は別端末からでも active share をコピーできる

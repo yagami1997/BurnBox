@@ -1,6 +1,6 @@
 # AI Deployment Handoff
 
-*Last updated: April 12, 2026 at 6:31 PM PDT*
+*Last updated: April 13, 2026 at 6:06 AM PDT*
 
 ## Purpose
 
@@ -14,14 +14,14 @@ The AI should help the operator complete these tasks in order:
 
 1. Inspect the repository and confirm the deployment files exist.
 2. Prepare `wrangler.toml` from `wrangler.toml.template`.
-3. Confirm the intended Worker name, D1 database name, D1 database id, R2 bucket name, workspace hostname, and public share hostname.
+3. Confirm the intended Worker name, D1 database name, D1 database id, R2 bucket name, workspace hostname, public share hostname, and optional `APP_ENTRY_PATH`.
 4. Apply D1 migrations in order.
 5. Configure required Worker secrets:
    - `SESSION_SECRET`
    - `SHARE_LINK_SECRET`
    - `CLAIM_KEY` if the deployment is using a manual setup key instead of a log-generated claim code
 6. Deploy the Worker.
-7. Validate owner claim or upgrade flow, upload, share creation, and direct share download.
+7. Validate owner claim or upgrade flow, private-entry behavior, upload, share creation, and direct share download.
 8. Verify workspace account controls: password change, backup-code generation, logout, and `Sign Out Other Devices`, with recovery email treated as an optional operator-managed setting.
 9. If public links fail, check `SHARE_LINK_SECRET`, `SHARE_BASE_URL`, `ALLOWED_SHARE_HOSTS`, and route coverage first.
 
