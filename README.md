@@ -333,9 +333,22 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Read [SEC
 
 ## Legal Position
 
-BurnBox is self-hosted source code, not a hosted service. The project author does not operate third-party deployments. If you fork, deploy, or run a BurnBox instance for others, the legal and compliance obligations of that operation are yours. Read the full [Legal Risk Statement](docs/en/legal-risk-statement.md).
+BurnBox is self-hosted source code, not a hosted service. The project author does not operate third-party deployments and accepts no liability for how forks or instances are used.
 
-Abuse or legal complaints about content on a third-party BurnBox deployment must go to the operator of that deployment, not to this repository.
+**Before you fork or deploy BurnBox, read the full [Legal Risk Statement](docs/en/legal-risk-statement.md) and [Repository Boundaries](docs/en/repository-boundaries.md).** These documents exist because the obligations of running a file-distribution system are real and vary significantly by jurisdiction. Do not skip them.
+
+If you fork, deploy, or operate a BurnBox instance — especially one that serves other people's files or is accessible to the public — you are responsible for:
+
+- conducting your own legal assessment of applicable laws in your jurisdiction before deployment
+- complying with all relevant local, national, and international laws and regulations
+- data protection and privacy obligations (such as GDPR, PIPL, or equivalent frameworks)
+- copyright, takedown, and notice-and-action requirements
+- establishing and publishing an operator contact route for abuse and legal inquiries (`abuse@your-domain.example`)
+- any platform terms of service imposed by your infrastructure providers
+
+**BurnBox must be used strictly in accordance with the laws of your jurisdiction. Operating an instance in a legally non-compliant manner is solely the responsibility of the operator, not the upstream project.**
+
+Abuse or legal complaints about content on a third-party BurnBox deployment must go to the operator of that deployment, not to this repository. This project does not have visibility into, control over, or responsibility for the content of any third-party instance.
 
 ## Notes
 
