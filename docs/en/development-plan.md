@@ -1,38 +1,35 @@
 # Development Plan
 
-*Last updated: April 13, 2026 at 6:06 AM PDT*
+*Last updated: April 13, 2026 at 6:45 PM PDT*
 
 ## Current baseline
 
-BurnBox 2.2.1 is now defined by three near-term engineering tracks:
+BurnBox 2.2.2 is now defined by four completed engineering layers and one remaining near-term track:
 
 - a stable multipart upload baseline on Cloudflare Workers, R2, and D1
 - a shipped owner-account authentication layer that replaces the long-lived deployment-password model
 - a shipped private-entry and upload-diagnostics baseline that makes prefixed workspace routing and upload-failure inspection operationally legible
+- a completed frontend-JS maintainability pass that separates the workspace inline script into focused client modules
 
 Recent validation includes successful transfers through `4.3 GB / 870 parts` and `11 GB / 2200 parts` without the oscillation that previously appeared during long uploads.
 
-That changes the engineering question. The next step is no longer proving that large-file upload is feasible. The next step is reducing restart cost and uncertainty after interruption.
+The engineering question is now clear: the next step is reducing restart cost and uncertainty after interruption. The frontend module boundary needed for that work is now in place.
 
 ## Next implementation targets
 
 The next formal implementation targets are:
 
-1. Frontend-JS refactoring on top of the current stable workspace baseline
-2. Email-based recovery and account-polish on top of the owner-account baseline
-3. Resumable upload on top of the current multipart baseline
+1. ~~Frontend-JS refactoring on top of the current stable workspace baseline~~ **Completed in 2.2.2**
+2. Resumable upload on top of the current multipart baseline
+3. Email-based recovery and account-polish on top of the owner-account baseline
 
-The auth transition is already in place. BurnBox 2.2.1 also closed the private-entry routing and upload-cleanup gap without yet completing the larger frontend-JS reorganization. The next auth-related work is making recovery more user-friendly while keeping the current security baseline intact. The upload-resume track remains the next major reliability expansion, but it now follows one smaller maintainability release.
-
-BurnBox should also be able to continue an interrupted multipart transfer from durable server-side state instead of forcing a full restart after a browser error, refresh, or mid-transfer network failure.
+BurnBox should be able to continue an interrupted multipart transfer from durable server-side state instead of forcing a full restart after a browser error, refresh, or mid-transfer network failure.
 
 ## Planned work
 
 ### 1. Frontend-JS maintainability pass
 
-- separate the current monolithic workspace script into clearer modules without changing product behavior
-- preserve `boot.apiBase` and prefixed private-entry routing as the only source of private API paths
-- keep `Logout`, `Refresh`, upload, share, and account controls stable under prefixed routes
+**Completed in 2.2.2.** The monolithic workspace script is now split into five client modules (`helpers`, `share`, `files`, `upload`, `boot-wiring`) under `src/lib/client/`. `layout.js` composes the page script from these imports. No product behavior changed.
 
 ### 2. Account recovery and polish
 
@@ -77,6 +74,8 @@ BurnBox should also be able to continue an interrupted multipart transfer from d
 - `src/lib/session.js`
 - `src/lib/files.js`
 - `src/lib/layout.js`
+- `src/lib/client/upload.js` — resumable upload behavior lives here
+- `src/lib/client/boot-wiring.js` — resume UI wiring will land here
 - `src/lib/auth-layout.js`
 - `scripts/private-entry-smoke.mjs`
 - a new migration if resumable state needs additional indexed metadata

@@ -74,6 +74,26 @@ Publishing it is useful for three reasons:
 
 ## Changelog
 
+### April 13, 2026 · BurnBox 2.2.2 Frontend JS Refactor · 6:45 PM PDT
+
+- separates the monolithic workspace inline script into five focused client modules: `helpers`, `share`, `files`, `upload`, and `boot-wiring`
+- `layout.js` now composes the page script from imported modules instead of carrying all frontend JS detail inline
+- preserves `boot.apiBase` and `boot.appEntryPath` as the sole source of private API paths — no bare `/api/...` strings reintroduced
+- keeps Logout, Refresh, Upload, share create/revoke, and all account security actions stable under prefixed private-entry routes
+- no product behavior changes, no new API routes, no new capabilities — structural maintainability pass only
+- establishes a cleaner frontend module boundary ahead of the resumable upload work in 2.3.0
+
+Developer guidance for this release:
+
+- [Quickstart](docs/en/quickstart.md)
+- [Deployment](docs/en/deployment.md)
+- [Architecture](docs/en/architecture.md)
+- [Development Plan](docs/en/development-plan.md)
+- [Documentation index](docs/README.md)
+
+<details>
+<summary>Older changelog entries</summary>
+
 ### April 13, 2026 · BurnBox 2.2.1 Upload Diagnostics and Private Entry Release · 6:06 AM PDT
 
 - ships deployment-managed private workspace entry support through `APP_ENTRY_PATH`
@@ -93,9 +113,6 @@ Developer guidance for this release:
 - [Release Checklist](docs/en/release-checklist.md)
 - [Troubleshooting](docs/en/troubleshooting.md)
 - [Documentation index](docs/README.md)
-
-<details>
-<summary>Older changelog entries</summary>
 
 ### April 12, 2026 · BurnBox 2.2.0 Owner Account and Security Upgrade · 8:36 PM PDT
 
@@ -216,7 +233,7 @@ BurnBox's current upload path reflects the lessons above.
 - the client owns transient retry behavior, while the Worker keeps the execution path short and legible
 - current testing has validated stable completion through `4.3 GB / 870 parts` and `11 GB / 2200 parts`
 
-This does not mean the upload problem is "solved forever". It means the system is being shaped toward the correct problem statement: cumulative reliability, not only bandwidth or timeout tuning. BurnBox 2.2.1 adds operator diagnostics, private-entry routing, and upload-failure cleanup around that baseline. The next implementation targets are a smaller frontend-JS refactor in 2.2.2 and resumable upload in 2.3.0 so recovery can continue from durable part truth instead of restarting the entire transfer.
+This does not mean the upload problem is "solved forever". It means the system is being shaped toward the correct problem statement: cumulative reliability, not only bandwidth or timeout tuning. BurnBox 2.2.2 has now completed the frontend-JS maintainability pass, splitting the workspace inline script into focused client modules without changing any product behavior. The next implementation target is resumable upload in 2.3.0 so recovery can continue from durable part truth instead of restarting the entire transfer.
 
 ## Technical Significance
 
@@ -230,7 +247,7 @@ BurnBox demonstrates a practical pattern for private file operations on the edge
 
 ## Core Architecture
 
-The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extended that base into a share-delivery redesign. The BurnBox 2.1.1 line hardened multipart behavior and clarified the research direction. The BurnBox 2.2.0 line moved workspace authentication from a deployment-password pattern toward owner claim, upgrade flow, and in-product account security. The BurnBox 2.2.1 line adds private-entry routing, upload diagnostics, and multipart cleanup hardening on top of that baseline.
+The BurnBox 2.0.0 line solved upload reliability with chunked multipart ingest. The BurnBox 2.1.0 line extended that base into a share-delivery redesign. The BurnBox 2.1.1 line hardened multipart behavior and clarified the research direction. The BurnBox 2.2.0 line moved workspace authentication from a deployment-password pattern toward owner claim, upgrade flow, and in-product account security. The BurnBox 2.2.1 line adds private-entry routing, upload diagnostics, and multipart cleanup hardening on top of that baseline. The BurnBox 2.2.2 line completes the frontend-JS maintainability pass, separating the workspace inline script into focused client modules as a prerequisite for resumable upload.
 
 The current share architecture uses:
 

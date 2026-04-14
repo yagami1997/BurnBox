@@ -1,6 +1,6 @@
 # Architecture
 
-*Last updated: April 13, 2026 at 6:06 AM PDT*
+*Last updated: April 13, 2026 at 6:45 PM PDT*
 
 ## Overview
 
@@ -10,14 +10,15 @@ BurnBox is a compact Cloudflare-native control plane:
 - R2 stores file objects
 - D1 stores file metadata, upload state, share state, and audit logs
 
-BurnBox 2.2.1 has four major architectural layers:
+BurnBox 2.2.2 has five major architectural layers:
 
 - upload reliability through chunked multipart ingest
 - share-delivery separation through split domains and stable public handles
 - workspace account security through owner claim, upgrade flow, and in-product session control
 - private workspace route isolation plus operator-visible upload diagnostics
+- frontend module separation — the workspace inline script is now composed from focused client modules under `src/lib/client/`
 
-The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.2.1 now ships owner-claim auth, legacy upgrade flow, deployment-managed private-entry routing, upload diagnostics, and upload-abort cleanup on top of that baseline. The next implementation steps are a smaller frontend-JS maintainability pass and then resumable upload.
+The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.2.2 completes the frontend-JS maintainability pass on top of the 2.2.1 baseline. The next implementation step is resumable upload.
 
 One practical warning belongs at the architectural level:
 
@@ -54,6 +55,15 @@ The third major shift is moving workspace authentication from a deployment-passw
 - password change, recovery, and device/session controls move into the workspace
 - the long-lived workspace password no longer belongs in deployment configuration
 - backup codes give the workspace a product-level recovery baseline instead of a deployment-secret fallback, while recovery email remains optional per operator policy
+
+### 2.2.2: frontend module separation
+
+The fifth major shift is a structural maintainability pass on the workspace UI layer:
+
+- the monolithic inline script previously embedded in `layout.js` is now split into five client modules: `helpers`, `share`, `files`, `upload`, and `boot-wiring`
+- `layout.js` composes the page script from these imported modules rather than carrying all frontend JS inline
+- `boot.apiBase` and `boot.appEntryPath` remain the sole source of private API paths — no bare `/api/...` paths are reintroduced
+- no product behavior changes; this is a prerequisite for the resumable upload work in 2.3.0
 
 ### 2.2.1: private-entry routing and upload observability
 
