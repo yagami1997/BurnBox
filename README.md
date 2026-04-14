@@ -366,7 +366,7 @@ A small system should remain legible to a single careful reader. That is not a c
 
 ---
 
-The Japanese documentation exists because good ideas travel better when they arrive in a familiar language. To the friends at Kyoto University who made that feel worth doing — thank you.
+The Japanese documentation is a small gesture toward the idea that technical work should be readable in more than one language. To the friends at Kyoto University who made that feel worthwhile — thank you.
 
 ## License
 
