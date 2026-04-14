@@ -1,12 +1,12 @@
 # AI Deployment Handoff
 
-*Last updated: April 13, 2026 at 6:57 PM PDT*
+*Last updated: April 13, 2026 at 7:10 PM PDT*
 
 ## Purpose
 
 This document is for users who want Claude, GPT, Codex, or a similar coding assistant to carry a fresh BurnBox fork from local checkout to a working Cloudflare deployment.
 
-Use this file as the handoff prompt instead of asking the model to "figure out the repo". The goal is to reduce ambiguity around Cloudflare resource names, required secrets, schema migration order, and share-link verification.
+Use this file as the handoff prompt instead of asking the model to "figure out the repo". The goal is to reduce ambiguity around Cloudflare resource names, required secrets, schema migration order, private-entry configuration, and post-deploy verification.
 
 ## What the AI should do
 
@@ -14,16 +14,27 @@ The AI should help the operator complete these tasks in order:
 
 1. Inspect the repository and confirm the deployment files exist.
 2. Prepare `wrangler.toml` from `wrangler.toml.template`.
-3. Confirm the intended Worker name, D1 database name, D1 database id, R2 bucket name, workspace hostname, public share hostname, and optional `APP_ENTRY_PATH`.
-4. Apply D1 migrations in order.
+3. Confirm the intended values for:
+   - Worker name
+   - D1 database name and id
+   - R2 bucket name
+   - workspace hostname
+   - public share hostname
+   - `APP_ENTRY_PATH` — decide whether the private workspace will be served at `/` or behind a prefix such as `/ops`
+4. Apply D1 migrations in order through all five files.
 5. Configure required Worker secrets:
    - `SESSION_SECRET`
    - `SHARE_LINK_SECRET`
    - `CLAIM_KEY` if the deployment is using a manual setup key instead of a log-generated claim code
 6. Deploy the Worker.
-7. Validate owner claim or upgrade flow, private-entry behavior, upload, share creation, and direct share download.
-8. Verify workspace account controls: password change, backup-code generation, logout, and `Sign Out Other Devices`, with recovery email treated as an optional operator-managed setting.
-9. If public links fail, check `SHARE_LINK_SECRET`, `SHARE_BASE_URL`, `ALLOWED_SHARE_HOSTS`, and route coverage first.
+7. Complete owner claim or upgrade flow:
+   - **Alert the operator to save backup codes before closing the workspace.** Backup codes are shown once and cannot be retrieved from the system afterward.
+8. Validate private-entry behavior if `APP_ENTRY_PATH` is configured:
+   - confirm the workspace loads from the prefixed route
+   - confirm `/` does not expose the private workspace
+9. Validate workspace account controls: password change, backup-code regeneration, logout, and `Sign Out Other Devices`. Treat recovery email as an optional operator-managed setting.
+10. Validate upload, share creation, and direct share download.
+11. If public links fail, check `SHARE_LINK_SECRET`, `SHARE_BASE_URL`, `ALLOWED_SHARE_HOSTS`, and route coverage first.
 
 ## Important constraints
 
@@ -32,6 +43,7 @@ The AI should help the operator complete these tasks in order:
 - Do not skip `SHARE_LINK_SECRET`. Public share downloads will fail with `503` if it is missing.
 - Do not enable hostname-style share links unless wildcard DNS, Worker routes, and certificate coverage are intentionally configured.
 - Prefer the path-based stable public link: `/h/{publicHandle}`.
+- Do not skip the backup-code save warning. The operator must be told to save codes before closing the browser.
 
 ## Recommended operator workflow
 
@@ -48,6 +60,7 @@ Before handing this repo to an AI, have these values ready:
 - one strong session secret
 - one strong share-link secret
 - one manual claim key only if you do not want to rely on a log-generated claim code
+- `APP_ENTRY_PATH` value — the prefix for the private workspace (e.g. `/ops`), or omit to serve from `/`
 - whether this deployment is fresh or upgrading from a legacy `ADMIN_PASSWORD` instance
 
 ## Copy-paste handoff prompt
@@ -69,17 +82,20 @@ Your job is to guide and execute the deployment step by step without guessing co
 
 Rules:
 - Inspect the repository before acting.
-- Use the actual values I provide for Worker name, D1 database name/id, R2 bucket, workspace host, and share host.
+- Use the actual values I provide for Worker name, D1 database name/id, R2 bucket, workspace host, share host, and APP_ENTRY_PATH.
 - Do not assume the D1 database name is "burnbox" unless the config actually uses that name.
 - Do not skip SHARE_LINK_SECRET.
 - Warn me before any force push, destructive action, or secret overwrite.
-- After deployment, verify:
-  1. owner claim or upgrade works
-  2. password change works, and recovery email is either intentionally left disabled or verified as an enabled operator choice
-  3. file upload works
-  4. share creation works
-  5. the stable link uses the public share host
-  6. the share link downloads directly
+- After owner claim or upgrade completes, explicitly tell me to save the backup codes before proceeding. They are shown once.
+
+After deployment, verify in this order:
+  1. Owner claim or upgrade works and backup codes are saved.
+  2. If APP_ENTRY_PATH is set, the workspace is reachable from the prefixed route and not from /.
+  3. Password change works. Recovery email is either intentionally left disabled or verified as enabled.
+  4. File upload works and reaches finalization.
+  5. Share creation works and the stable link uses the public share host.
+  6. The share link downloads directly.
+  7. Revoking the share makes the link stop working.
 
 If anything fails, debug in this order:
 - wrangler.toml values
@@ -101,6 +117,8 @@ A deployment should not be considered complete until all of these are true:
 - `CLAIM_KEY` exists if you are not using log-generated claim codes
 - the Worker is deployed to both the workspace host and the public share host
 - owner claim or upgrade succeeds
+- **backup codes have been saved by the operator**
+- if `APP_ENTRY_PATH` is set, the workspace is only reachable from the prefixed route
 - workspace account controls succeed after sign-in
 - at least one upload completes
 - at least one share link downloads successfully
@@ -110,3 +128,4 @@ A deployment should not be considered complete until all of these are true:
 - [Quickstart](quickstart.md)
 - [Deployment](deployment.md)
 - [Troubleshooting](troubleshooting.md)
+- [Architecture](architecture.md)

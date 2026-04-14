@@ -1,6 +1,6 @@
 # Quickstart
 
-*Last updated: April 13, 2026 at 6:57 PM PDT*
+*Last updated: April 13, 2026 at 7:10 PM PDT*
 
 ## Requirements
 
@@ -68,8 +68,10 @@ npx wrangler secret put CLAIM_KEY
 ```
 
 `SHARE_LINK_SECRET` is mandatory for public downloads. If it is missing, share links will return `503` even if the workspace login still works.
-`CLAIM_KEY` is only for the initial owner-claim path. It should not be treated as the long-lived workspace password.
-If `CLAIM_KEY` is omitted, a one-time claim token will be generated and written to the Worker log on first workspace visit.
+
+`CLAIM_KEY` is a one-time setup key for the initial owner-claim flow. It is not a long-lived workspace password and cannot be reused after claim succeeds. If `CLAIM_KEY` is omitted, a one-time claim token is generated and written to the Worker log on first workspace visit.
+
+Keep `SESSION_SECRET` and `SHARE_LINK_SECRET` as separate values to isolate admin session signing from public download-signature logic.
 
 ## 5. Configure local development secrets
 
@@ -93,14 +95,18 @@ npm run dev
 
 Check the main flow:
 
-- open the workspace
+- open the workspace (use the prefixed route if `APP_ENTRY_PATH` is configured)
 - if this is a new deployment, complete `Claim your BurnBox`
+  - **save the backup codes before closing the browser** — they are shown once and cannot be retrieved afterward
 - if this is an upgraded deployment, complete `Upgrade your BurnBox security`
-- confirm owner sign-in works
-- decide whether this deployment will use `Recovery email` or keep backup codes as the only recovery path
-- confirm `Change password`, `Generate Backup Codes`, and `Sign Out Other Devices` work
-- if email recovery is part of this deployment policy, confirm the workspace account card can add a recovery email
-- if `APP_ENTRY_PATH` is configured, confirm the workspace also works from that prefixed route and not only from `/`
+  - the same backup-code warning applies at upgrade time
+- confirm owner sign-in works with the claimed email and password
+- decide whether this deployment will use `Recovery email` or rely on backup codes only
+- confirm `Change password`, `Regenerate Recovery Codes`, and `Sign Out Other Devices` work
+- if email recovery is part of this deployment policy, confirm the workspace account card can add and edit a recovery email
+- if `APP_ENTRY_PATH` is configured:
+  - confirm the workspace loads only from the prefixed route
+  - confirm `/` does not expose the private workspace
 - upload a test file
 - confirm multipart upload reaches finalization
 - confirm the current baseline can handle large transfers without visible oscillation

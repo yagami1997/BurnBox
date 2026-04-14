@@ -1,6 +1,6 @@
 # クイックスタート
 
-*最終更新: April 13, 2026 at 6:57 PM PDT*
+*最終更新: April 13, 2026 at 7:10 PM PDT*
 
 ## 要件
 
@@ -68,8 +68,10 @@ npx wrangler secret put CLAIM_KEY
 ```
 
 `SHARE_LINK_SECRET` は公開 download に必須です。これがないと、workspace login が正常でも share link は `503` を返します。
-`CLAIM_KEY` は初回 owner claim 用の one-time setup key です。長期ログイン用パスワードとしては扱いません。
-`CLAIM_KEY` を設定しない場合、workspace への初回アクセス時に one-time claim token が生成され、Worker log に書き出されます。
+
+`CLAIM_KEY` は初回 owner claim 用の one-time setup key です。長期ログイン用パスワードではなく、claim 成功後は再利用できません。`CLAIM_KEY` を設定しない場合、workspace への初回アクセス時に one-time claim token が生成され、Worker log に書き出されます。
+
+`SESSION_SECRET` と `SHARE_LINK_SECRET` は別の値にしてください。同じ値にすると、管理 session 署名と公開 download 署名が同じ secret material を共有することになり、2 つの面の分離が失われます。
 
 ## 5. ローカル開発用 secrets の設定
 
@@ -93,14 +95,18 @@ npm run dev
 
 主要 flow の確認:
 
-- workspace を開く
+- workspace を開く（`APP_ENTRY_PATH` を設定した場合は prefixed route を使う）
 - 新規デプロイなら `Claim your BurnBox` を完了する
+  - **ブラウザを閉じる前に backup code を必ず保存する。** 一度だけ表示され、その後はシステムから取得できない
 - 旧環境のアップグレードなら `Upgrade your BurnBox security` を完了する
+  - upgrade 時も同様に backup code の保存が必要
 - owner login が成功する
 - この deployment で `Recovery email` を使うか、backup code のみを recovery path にするかを決める
-- `Change password`、`Generate Backup Codes`、`Sign Out Other Devices` が動作する
+- `Change password`、`Regenerate Recovery Codes`、`Sign Out Other Devices` が動作する
 - email recovery を使う方針なら、workspace account card から recovery email を追加・更新できる
-- `APP_ENTRY_PATH` を使う場合、その prefixed route でも workspace が正常動作する
+- `APP_ENTRY_PATH` を使う場合:
+  - prefixed route から workspace が正常動作する
+  - `/` から private workspace が見えないことを確認する
 - テストファイルをアップロードする
 - multipart upload が finalization まで進む
 - 現在の baseline が大容量転送でも目立つ oscillation なく進むことを確認する

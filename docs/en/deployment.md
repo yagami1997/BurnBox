@@ -1,6 +1,6 @@
 # Deployment
 
-*Last updated: April 13, 2026 at 6:57 PM PDT*
+*Last updated: April 13, 2026 at 7:10 PM PDT*
 
 ## Overview
 
@@ -15,12 +15,31 @@ This split exists for privacy and operational clarity:
 - the public surface should not expose admin routes
 - share routing and workspace routing can evolve independently
 
-BurnBox 2.2.1 also changes the operational ownership model:
+The current ownership model:
 
-- new deployments are claimed inside the product
-- legacy deployments can upgrade from `ADMIN_PASSWORD` to an owner account
-- password rotation, backup codes, optional recovery-email support, and session reset now live inside the workspace
+- new deployments are claimed inside the product through a one-time owner-claim flow
+- legacy deployments can upgrade from `ADMIN_PASSWORD` to an owner account without data loss
+- password rotation, backup codes, optional recovery-email support, and session reset all live inside the workspace
 - deployments may optionally move the private workspace behind a deployment-managed entry prefix such as `/ops`
+
+## Key decisions before you start
+
+Make these decisions before touching any configuration:
+
+**1. Private workspace entry prefix (`APP_ENTRY_PATH`)**
+
+Decide whether you want the private workspace reachable at `/` or behind a custom path prefix such as `/ops`. This controls both the HTML workspace route and all authenticated `/api/*` routes. Setting this after initial deployment requires no migration but does change the URL operators use to access the workspace.
+
+If this is a security-sensitive deployment, setting a non-obvious prefix reduces the chance that automated scanners locate the admin surface.
+
+**2. Recovery path strategy**
+
+BurnBox ships with backup codes as the default recovery path. Recovery email is optional and requires intentional operator configuration. Decide upfront:
+
+- backup codes only: simpler, no mail infrastructure needed, codes must be saved securely at claim time
+- backup codes + recovery email: adds a second recovery path, requires a working email address reachable by the operator
+
+Either choice is valid. The important point is that backup codes are shown once at claim time. **Save them before closing the workspace.**
 
 ## Required Cloudflare resources
 
@@ -136,19 +155,15 @@ If you do not want a prefixed private workspace entry, omit `APP_ENTRY_PATH` and
 
 Set the following production secrets:
 
-- `SESSION_SECRET`
-- `SHARE_LINK_SECRET`
-- `CLAIM_KEY` if you want to provide the one-time claim token manually
+- `SESSION_SECRET` — owner session signing
+- `SHARE_LINK_SECRET` — public download-signature logic
+- `CLAIM_KEY` — one-time setup key for first owner claim, only if you are not using a log-generated claim code
 
-Recommended separation:
+Keep `SESSION_SECRET` and `SHARE_LINK_SECRET` separate. Using the same value for both means admin auth and public delivery share the same secret material, which reduces the isolation between the two surfaces.
 
-- use `SESSION_SECRET` for owner session signing
-- use `SHARE_LINK_SECRET` for public download-signature logic
-- use `CLAIM_KEY` only as a one-time setup key for first claim when log-generated claim codes are not practical
-
-That keeps admin auth and public delivery signatures from sharing the same secret material.
 `SHARE_LINK_SECRET` is not optional. If it is missing, public share downloads will fail with `503` even though admin login may still appear healthy.
-`CLAIM_KEY` is not a long-lived login password.
+
+`CLAIM_KEY` is a one-time setup key, not a long-lived workspace password. After the owner claim succeeds and the workspace is operational, the claim token cannot be reused. If `CLAIM_KEY` is omitted, a one-time claim token is generated and written to the Worker log on first workspace visit.
 
 Legacy-upgrade note:
 
@@ -185,14 +200,18 @@ npm run deploy
 
 Validate in this order:
 
-1. Open the workspace domain.
+1. Open the workspace domain (or the prefixed path if `APP_ENTRY_PATH` is configured).
 2. If the deployment is new, complete `Claim your BurnBox`.
+   - **Save the backup codes before closing.** They are shown once and cannot be recovered from the system after this point.
 3. If the deployment is an upgrade from the legacy password model, complete `Upgrade your BurnBox security`.
-4. Confirm owner login works.
-5. Decide whether this deployment will actually use `Recovery email`. It is optional and operator-managed; self-use deployments may intentionally leave it unset and rely on backup codes instead.
-6. Confirm `Change password`, `Generate Backup Codes`, and `Sign Out Other Devices` work from the workspace account controls.
-7. If this deployment intends to use email recovery, confirm `Recovery email` can be added from the workspace account card.
-8. If `APP_ENTRY_PATH` is configured, confirm the private workspace opens from that prefixed route and `/` does not expose the workspace.
+   - Same backup-code warning applies at upgrade time.
+4. Confirm owner login works with the claimed email and password.
+5. Confirm `Change password`, `Regenerate Recovery Codes`, and `Sign Out Other Devices` work from the workspace account controls.
+6. If this deployment intends to use email recovery, confirm `Recovery email` can be added and edited from the workspace account card.
+7. If `APP_ENTRY_PATH` is configured:
+   - confirm the private workspace opens only from that prefixed route
+   - confirm `/` does not expose the private workspace
+   - run `npm run smoke:private-entry` locally to verify path isolation if modifying the prefix
 9. Upload one or more files.
 10. Confirm chunked upload reaches finalization and the files appear in the registry.
 11. Create a share.
