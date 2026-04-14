@@ -54,14 +54,16 @@ The public link does not expose your admin surface. The admin surface does not e
 
 ## 📋 Changelog
 
-### April 13, 2026 · BurnBox 2.2.2 Frontend JS Refactor · 6:45 PM PDT
+### April 14, 2026 · BurnBox 2.3.0 Resumable Upload Release · 5:03 AM PDT
 
-- separates the monolithic workspace inline script into five focused client modules: `helpers`, `share`, `files`, `upload`, and `boot-wiring`
-- `layout.js` now composes the page script from imported modules instead of carrying all frontend JS detail inline
-- preserves `boot.apiBase` and `boot.appEntryPath` as the sole source of private API paths — no bare `/api/...` strings reintroduced
-- keeps Logout, Refresh, Upload, share create/revoke, and all account security actions stable under prefixed private-entry routes
-- no product behavior changes, no new API routes, no new capabilities — structural maintainability pass only
-- establishes a cleaner frontend module boundary ahead of the resumable upload work in 2.3.0
+- adds `GET /api/files/upload-status` — a server-side query endpoint that returns confirmed part numbers, plan status, and next-part pointer from durable `upload_parts` state; the server is the authority on multipart truth, not the browser
+- client now queries upload status before starting the part loop; already-confirmed parts are skipped and progress reporting is aligned to the actual resume position
+- `localStorage` records the `fileId`, filename, file size, and chunk geometry after `init-upload`; on page refresh the workspace detects a pending record and shows a resume banner
+- resume is triggered naturally: selecting the same file (matched by name and size) in the upload form automatically uses the existing `fileId` and resumes from the confirmed breakpoint — no separate file picker or extra interaction
+- dismissing a pending resume banner calls `abort-upload`, cleaning up the R2 incomplete multipart and the D1 upload plan immediately rather than waiting for R2's automatic expiry
+- adds Claim-page UX hardening: a required confirmation checkbox before `Enter workspace` becomes active, and a setup-key source explanation for operators who did not configure `CLAIM_KEY`
+- adds a Deployment status card visible to logged-in owners: shows private entry path, workspace host, share host, `SHARE_LINK_SECRET` configuration state with a warning when absent, recovery email, and hostname-style sharing toggle
+- adds a dismissible first-deploy guidance banner when `APP_ENTRY_PATH` is not configured, surfacing the configuration option for operators who did not know it existed
 
 Developer guidance for this release:
 
@@ -73,6 +75,15 @@ Developer guidance for this release:
 
 <details>
 <summary>Older changelog entries</summary>
+
+### April 13, 2026 · BurnBox 2.2.2 Frontend JS Refactor · 6:45 PM PDT
+
+- separates the monolithic workspace inline script into five focused client modules: `helpers`, `share`, `files`, `upload`, and `boot-wiring`
+- `layout.js` now composes the page script from imported modules instead of carrying all frontend JS detail inline
+- preserves `boot.apiBase` and `boot.appEntryPath` as the sole source of private API paths — no bare `/api/...` strings reintroduced
+- keeps Logout, Refresh, Upload, share create/revoke, and all account security actions stable under prefixed private-entry routes
+- no product behavior changes, no new API routes, no new capabilities — structural maintainability pass only
+- establishes a cleaner frontend module boundary ahead of the resumable upload work in 2.3.0
 
 ### April 13, 2026 · BurnBox 2.2.1 Upload Diagnostics and Private Entry Release · 6:06 AM PDT
 
@@ -156,7 +167,7 @@ Developer guidance for this release:
 
 ## Architecture
 
-BurnBox 2.2.2 is organized around five layers:
+BurnBox 2.3.0 is organized around six layers:
 
 **1. Split-domain delivery**
 A private workspace domain (`console.example.com`) handles authenticated operations. A public share domain (`relay.example.net`) handles external file delivery. The two domains share one Worker but serve different route surfaces.
@@ -172,6 +183,9 @@ Files are sliced into 5 MiB parts and assembled via R2 native multipart APIs. Up
 
 **5. Frontend module separation**
 The workspace client script is organized into five focused modules: `helpers`, `share`, `files`, `upload`, and `boot-wiring`. All API paths are derived from `boot.apiBase` — no bare `/api/...` strings exist in client code.
+
+**6. Resumable upload**
+The server holds confirmed part truth in `upload_parts`. On upload start or re-entry, the client queries `GET /api/files/upload-status` to retrieve already-confirmed parts and skips them, resuming from the first missing position. `localStorage` records the upload plan identifier after initialization. On page refresh, selecting the same file by name and size automatically resumes the interrupted transfer — no separate interaction required.
 
 The current share model uses stable `public_handle` identifiers reconstructable from D1 state, which fixes the cross-device `Copy link` problem that token-hash-only storage could not solve.
 
@@ -360,7 +374,9 @@ The second was about identity. A share link is a capability — bounded, revocab
 
 The third was about ownership. A deployment password in an environment variable is not an owner. It is a shared secret with no memory, no recovery path, and no face. Moving authentication into the product was an attempt to give the workspace something closer to a person at the other end of it.
 
-What remains is the hardest question: how to return from the middle of things. An interrupted upload is not a failed request. It is a system in a partially-committed state. The work is to make that state legible and recoverable — not by restarting from zero, but by knowing exactly how far you got.
+The fourth was about recovery. An interrupted upload is not a failed request — it is a system in a partially-committed state. The browser's memory of the transfer does not survive a page refresh. The server's record of each confirmed part does. The answer was to make the server the authority on part truth, and to let the client ask what the server already knows before deciding what remains to be done. That is not a clever trick. It is the only design that keeps recovery honest.
+
+What remains is the question of time — whether a system that has paused for hours or days can resume as confidently as one that paused for seconds. That is a harder problem, and one that will require the system to say something more precise about when a partial state is still worth returning to.
 
 A small system should remain legible to a single careful reader. That is not a constraint. It is the point.
 

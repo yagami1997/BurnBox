@@ -1,6 +1,19 @@
 # BurnBox Release Checklist
 
-*Last updated: April 13, 2026 at 6:57 PM PDT*
+*Last updated: April 14, 2026 at 5:03 AM PDT*
+
+## 2.3.0 Upgrade Notes
+
+BurnBox 2.3.0 adds resumable upload, a deployment status card, Claim-page UX hardening, and a first-deploy guidance banner. There are no new D1 migrations, no new environment variables, and no changes to the deployment model.
+
+To upgrade from 2.2.2:
+
+- deploy the new Worker build (`wrangler deploy`)
+- confirm upload, resume banner, Deployment card, and Logout still work as expected
+- no database changes required
+- no secrets changes required
+
+---
 
 ## 2.2.2 Upgrade Notes
 

@@ -4,6 +4,58 @@ import { script as clientFilesScript } from "./client/files.js";
 import { script as clientUploadScript } from "./client/upload.js";
 import { script as clientBootWiringScript } from "./client/boot-wiring.js";
 
+const BURNBOX_VERSION = "2.3.0";
+
+function renderDeploymentCard(dep, appEntryPath) {
+  const row = (label, value, warn = false) =>
+    `<div class="stats-row${warn ? " stats-row--warn" : ""}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+
+  const shareLinkRow = dep.shareLinkSecretConfigured
+    ? row("Share link secret", "Configured")
+    : row("Share link secret", "Not configured — public share downloads will fail (503)", true);
+
+  return `
+    <section class="layout app" style="margin-bottom:0;">
+      <section class="panel" style="padding:1.25rem 1.5rem;">
+        <h2 style="margin:0 0 0.75rem;font-size:1rem;font-weight:600;letter-spacing:0.02em;">Deployment</h2>
+        <div class="stats" style="gap:0.35rem;">
+          ${row("Version", BURNBOX_VERSION)}
+          ${row("Private entry", appEntryPath || "/")}
+          ${dep.workspaceHost ? row("Workspace host", dep.workspaceHost) : ""}
+          ${dep.shareHost ? row("Share host", dep.shareHost) : ""}
+          ${shareLinkRow}
+          ${dep.recoveryEmail ? row("Recovery email", dep.recoveryEmail) : row("Recovery email", "Not set")}
+          ${row("Hostname-style sharing", dep.hostnameSharing ? "Enabled" : "Disabled")}
+        </div>
+      </section>
+    </section>`;
+}
+
+function renderFirstDeployBanner(dep, appEntryPath) {
+  // Show a one-time informational banner only when APP_ENTRY_PATH was not configured (entry is "/").
+  if (!dep || (appEntryPath && appEntryPath !== "/")) {
+    return "";
+  }
+  // The banner is dismissed client-side via localStorage; render a hidden element, JS shows it.
+  return `<div id="firstDeployBanner" class="notification is-info is-light" style="display:none;margin:1rem 1.5rem 0;">
+    <strong>Private entry:</strong> / (default).
+    To serve the workspace under a custom prefix, set <code>APP_ENTRY_PATH</code> in <code>wrangler.toml</code> and redeploy.
+    <button style="float:right;background:none;border:none;cursor:pointer;font-size:1.1rem;" id="dismissFirstDeployBanner" aria-label="Dismiss">&times;</button>
+  </div>
+  <script>
+    (function() {
+      if (!localStorage.getItem("burnbox_first_deploy_banner_dismissed")) {
+        var el = document.getElementById("firstDeployBanner");
+        if (el) el.style.display = "";
+      }
+      document.getElementById("dismissFirstDeployBanner")?.addEventListener("click", function() {
+        localStorage.setItem("burnbox_first_deploy_banner_dismissed", "1");
+        document.getElementById("firstDeployBanner").style.display = "none";
+      });
+    })();
+  </script>`;
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -13,7 +65,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-export function renderAppPage({ files, owner = null, apiBase = "/api", appEntryPath = "/" }) {
+export function renderAppPage({ files, owner = null, apiBase = "/api", appEntryPath = "/", deployment = null }) {
   const filesJson = JSON.stringify(files).replaceAll("<", "\\u003c");
   const safeOwner = owner
     ? {
@@ -1209,6 +1261,8 @@ export function renderAppPage({ files, owner = null, apiBase = "/api", appEntryP
         </div>
       </section>
 
+      ${deployment ? renderDeploymentCard(deployment, appEntryPath) : ""}
+
       <section class="layout app">
               <section class="panel upload-strip">
                 <div class="upload-strip-grid">
@@ -1327,13 +1381,15 @@ export function renderAppPage({ files, owner = null, apiBase = "/api", appEntryP
       <div>Technical Support Platform: Cloudflare Workers, R2, and D1.</div>
     </footer>
 
+    ${renderFirstDeployBanner(deployment, appEntryPath)}
     <script>
       const boot = {
         authenticated: true,
         files: ${filesJson},
         owner: ${ownerJson},
         apiBase: ${JSON.stringify(String(apiBase || "/api").replace(/\/+$/, "") || "/api")},
-        appEntryPath: ${JSON.stringify(appEntryPath || "/")}
+        appEntryPath: ${JSON.stringify(appEntryPath || "/")},
+        deployment: ${JSON.stringify(deployment || null)}
       };
       ${clientHelpersScript()}
       ${clientShareScript()}

@@ -14,9 +14,79 @@
  */
 export function script() {
   return `
+      // --- Incomplete-upload localStorage helpers ---
+      const INCOMPLETE_UPLOAD_KEY = "burnbox_incomplete_upload";
+
+      function saveIncompleteUpload(initData, filename, fileSize) {
+        try {
+          localStorage.setItem(INCOMPLETE_UPLOAD_KEY, JSON.stringify({
+            fileId: initData.fileId,
+            chunkSize: initData.chunkSize,
+            totalParts: initData.totalParts,
+            storageKey: initData.storageKey,
+            filename,
+            fileSize,
+            savedAt: new Date().toISOString(),
+          }));
+        } catch { /* quota or private-mode — non-fatal */ }
+      }
+
+      function clearIncompleteUpload() {
+        try { localStorage.removeItem(INCOMPLETE_UPLOAD_KEY); } catch { /* ignore */ }
+      }
+
+      function loadIncompleteUpload() {
+        try {
+          const raw = localStorage.getItem(INCOMPLETE_UPLOAD_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch { return null; }
+      }
+
+      // --- Resume banner ---
+      function renderResumeBanner(pending) {
+        const existing = document.getElementById("resumeBanner");
+        if (existing) existing.remove();
+
+        const banner = document.createElement("div");
+        banner.id = "resumeBanner";
+        banner.className = "notification is-warning is-light";
+        banner.style.cssText = "margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;";
+
+        const sizeLabel = pending.fileSize > 0
+          ? \` (\${Math.round(pending.fileSize / 1024 / 1024)} MiB)\`
+          : "";
+        const msg = document.createElement("span");
+        msg.style.flex = "1";
+        msg.textContent = \`Incomplete upload detected: \${pending.filename}\${sizeLabel}. Select the same file in the form below to resume.\`;
+
+        const dismissBtn = document.createElement("button");
+        dismissBtn.className = "button is-light is-small";
+        dismissBtn.textContent = "Dismiss";
+        dismissBtn.addEventListener("click", async () => {
+          clearIncompleteUpload();
+          banner.remove();
+          await abortUpload(pending.fileId);
+        });
+
+        banner.append(msg, dismissBtn);
+
+        const uploadForm = document.getElementById("uploadForm");
+        if (uploadForm?.parentNode) {
+          uploadForm.parentNode.insertBefore(banner, uploadForm);
+        } else {
+          document.querySelector("main, .container, body")?.prepend(banner);
+        }
+      }
+
       {
         renderFiles(currentFiles);
         setStatus("Workspace ready.", false, \`\${currentFiles.length} file(s) currently in the registry.\`);
+
+        // Show resume banner if there's a pending upload from a previous session.
+        const pendingUpload = loadIncompleteUpload();
+        if (pendingUpload?.fileId) {
+          renderResumeBanner(pendingUpload);
+        }
 
         const lastLoginDisplay = document.getElementById("lastLoginDisplay");
         if (lastLoginDisplay?.dataset.iso) {
@@ -272,21 +342,32 @@ export function script() {
           const note = document.getElementById("noteInput")?.value || "";
           clearUploadProgress();
 
-          setStatus("Preparing upload...", false, "Creating a signed direct-upload plan.");
-          const initResponse = await fetch(apiUrl("/files/init-upload"), {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              filename: file.name,
-              size: file.size,
-              contentType: file.type || "application/octet-stream"
-            })
-          });
+          // Check if this file matches a pending incomplete upload — resume if so.
+          let initData;
+          const pendingUpload = loadIncompleteUpload();
+          if (pendingUpload?.fileId && pendingUpload.filename === file.name && pendingUpload.fileSize === file.size) {
+            initData = pendingUpload;
+            document.getElementById("resumeBanner")?.remove();
+            setStatus("Resuming upload...", false, \`Matched pending upload — querying server for confirmed parts.\`);
+          } else {
+            setStatus("Preparing upload...", false, "Creating a signed direct-upload plan.");
+            const initResponse = await fetch(apiUrl("/files/init-upload"), {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                filename: file.name,
+                size: file.size,
+                contentType: file.type || "application/octet-stream"
+              })
+            });
 
-          const initData = await initResponse.json().catch(() => ({}));
-          if (!initResponse.ok) {
-            setStatus(initData.error || "Failed to initialize upload.", true);
-            return;
+            initData = await initResponse.json().catch(() => ({}));
+            if (!initResponse.ok) {
+              setStatus(initData.error || "Failed to initialize upload.", true);
+              return;
+            }
+
+            saveIncompleteUpload(initData, file.name, file.size);
           }
 
           try {
@@ -318,10 +399,13 @@ export function script() {
             }
           } catch (error) {
             await abortUpload(initData.fileId);
+            clearIncompleteUpload();
             clearUploadProgress();
             setStatus(String(error?.message || "Failed to save file record."), true);
             return;
           }
+
+          clearIncompleteUpload();
 
           if (completeData.file) {
             currentFiles = [completeData.file, ...currentFiles.filter((item) => item.id !== completeData.file.id)];

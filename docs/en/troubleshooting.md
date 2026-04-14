@@ -27,10 +27,9 @@ Check:
 
 Current baseline note:
 
-- BurnBox 2.2.2 inherits the validated large multipart baseline through `4.3 GB / 870 parts` and `11 GB / 2200 parts`
+- BurnBox 2.3.0 inherits the validated large multipart baseline through `4.3 GB / 870 parts` and `11 GB / 2200 parts`
 - if a new failure appears, treat it as a recoverability or environment-specific problem first, not as proof that large uploads are inherently unsupported
-
-The next planned mitigation is resumable upload. See the [Development Plan](development-plan.md).
+- resumable upload is now available: if an upload is interrupted, refreshing the page and selecting the same file will resume from the confirmed server-side breakpoint
 
 ## Migration reports duplicate column errors
 
@@ -68,7 +67,7 @@ Check:
 - the workspace file list is being loaded from the current deployment
 - the active share has not expired or been exhausted
 
-BurnBox 2.2.2 still reconstructs active links from `public_handle`. It should not depend on browser-local cache anymore.
+BurnBox 2.3.0 still reconstructs active links from `public_handle`. It should not depend on browser-local cache anymore.
 
 ## Prefixed private workspace route fails
 

@@ -64,6 +64,9 @@ export async function uploadFilePart(env, input) {
   if (!uploadPlan || uploadPlan.completed_at) {
     throw new Error("Upload plan was not found or has already been completed");
   }
+  if (["processing", "failed", "ready"].includes(uploadPlan.status)) {
+    throw new Error("Upload plan was not found or has already been completed");
+  }
 
   if (!Number.isInteger(input.partNumber) || input.partNumber <= 0) {
     throw new Error("partNumber must be a positive integer");
@@ -289,6 +292,46 @@ export async function getUploadDiagnostics(env, fileId) {
     lastPartRecordedAt,
     planUpdatedAt: uploadPlan.updated_at || uploadPlan.created_at || null,
     recentParts,
+  };
+}
+
+export async function getUploadStatus(env, fileId) {
+  const uploadPlan = await getUploadPlan(env, fileId);
+  // Only expose status for plans that are still actively in progress.
+  // Completed, failed, and aborted plans return null so the route returns 404.
+  if (!uploadPlan || !["created", "uploading"].includes(uploadPlan.status)) {
+    return null;
+  }
+
+  const totalParts = Math.max(
+    1,
+    Math.ceil(Number(uploadPlan.declared_size || 0) / Number(uploadPlan.chunk_size || CHUNK_SIZE)),
+  );
+
+  const partsResult = await env.DB.prepare(
+    `select part_number from upload_parts where file_id = ? order by part_number asc`,
+  )
+    .bind(fileId)
+    .all();
+
+  const confirmedParts = (partsResult.results || []).map((row) => Number(row.part_number));
+
+  // Next part = lowest missing part number in 1..totalParts, or totalParts+1 if all confirmed.
+  let nextPart = totalParts + 1;
+  const confirmedSet = new Set(confirmedParts);
+  for (let i = 1; i <= totalParts; i += 1) {
+    if (!confirmedSet.has(i)) {
+      nextPart = i;
+      break;
+    }
+  }
+
+  return {
+    fileId: uploadPlan.file_id,
+    status: uploadPlan.status,
+    totalParts,
+    confirmedParts,
+    nextPart,
   };
 }
 

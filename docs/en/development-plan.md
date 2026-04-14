@@ -1,99 +1,64 @@
 # Development Plan
 
-*Last updated: April 13, 2026 at 6:45 PM PDT*
+*Last updated: April 14, 2026 at 5:03 AM PDT*
 
 ## Current baseline
 
-BurnBox 2.2.2 is now defined by four completed engineering layers and one remaining near-term track:
+BurnBox 2.3.0 is now defined by five completed engineering layers:
 
 - a stable multipart upload baseline on Cloudflare Workers, R2, and D1
 - a shipped owner-account authentication layer that replaces the long-lived deployment-password model
 - a shipped private-entry and upload-diagnostics baseline that makes prefixed workspace routing and upload-failure inspection operationally legible
 - a completed frontend-JS maintainability pass that separates the workspace inline script into focused client modules
+- a shipped resumable upload layer that makes the server the authority on confirmed part truth and allows interrupted transfers to continue without restarting from the first part
 
-Recent validation includes successful transfers through `4.3 GB / 870 parts` and `11 GB / 2200 parts` without the oscillation that previously appeared during long uploads.
+Recent validation includes successful transfers through `4.3 GB / 870 parts` and `11 GB / 2200 parts`. The resumable upload work has been validated against mid-transfer interruptions and page-refresh scenarios.
 
-The engineering question is now clear: the next step is reducing restart cost and uncertainty after interruption. The frontend module boundary needed for that work is now in place.
-
-## Next implementation targets
-
-The next formal implementation targets are:
-
-1. ~~Frontend-JS refactoring on top of the current stable workspace baseline~~ **Completed in 2.2.2**
-2. Resumable upload on top of the current multipart baseline
-3. Email-based recovery and account-polish on top of the owner-account baseline
-
-BurnBox should be able to continue an interrupted multipart transfer from durable server-side state instead of forcing a full restart after a browser error, refresh, or mid-transfer network failure.
-
-## Planned work
+## Completed implementation
 
 ### 1. Frontend-JS maintainability pass
 
 **Completed in 2.2.2.** The monolithic workspace script is now split into five client modules (`helpers`, `share`, `files`, `upload`, `boot-wiring`) under `src/lib/client/`. `layout.js` composes the page script from these imports. No product behavior changed.
 
-### 2. Account recovery and polish
+### 2. Resume status endpoint
 
-- add email-delivered recovery once a mail channel is intentionally configured
-- refine the workspace account card and auth surfaces so recovery controls remain compact and legible
-- keep backup-code recovery as the emergency fallback, not the primary mental model
-- preserve the current owner-claim and legacy-upgrade behavior while reducing friction in daily account management
+**Completed in 2.3.0.** `GET /api/files/upload-status?fileId=` returns the confirmed part list, plan status, total parts, and next-part pointer from durable `upload_parts` state. The server is the authority; the client does not need to track its own progress across page loads.
 
-### 3. Recovery-oriented upload protocol
+### 3. Client-side resume behavior
 
-- define how the client asks whether an upload plan can be resumed
-- define what the server returns as durable part truth
-- distinguish between recoverable plans and plans that must be reinitialized
+**Completed in 2.3.0.** The upload client queries upload status before starting the part loop and skips already-confirmed parts. Progress reporting is aligned to the actual resume position — skipped parts are not re-reported as uploaded. `localStorage` records the upload plan identifier, filename, file size, and chunk geometry after `init-upload`. On page refresh, selecting the same file by name and size automatically resumes the interrupted transfer using the recorded `fileId`.
 
-### 4. Resume status endpoint
+### 4. Completion correctness
 
-- add a Worker route for querying upload-plan state
-- return uploaded part numbers, plan status, declared size, and chunk geometry
-- keep the server as the authority on multipart truth
+**Completed in 2.3.0.** Dismissing a pending resume banner calls `abort-upload`, which clears the R2 incomplete multipart and the D1 upload plan immediately. The existing `upload_parts` truth model is preserved during resumable transfers. Multipart completion remains dependent on durable server-side part records.
 
-### 5. Client-side resume behavior
+### 5. Operator experience hardening
 
-- continue from missing parts instead of restarting the full file
-- survive page refresh and user re-entry into the workspace
-- keep progress reporting honest when a resumed upload skips already durable parts
+**Completed in 2.3.0.**
+- Claim page: required confirmation checkbox before workspace entry, setup-key source explanation for operators who did not configure `CLAIM_KEY`
+- Deployment status card: visible to logged-in owners, shows private entry, workspace host, share host, `SHARE_LINK_SECRET` configuration state, recovery email, and hostname-style sharing toggle
+- First-deploy guidance banner: surfaces `APP_ENTRY_PATH` configuration option when the workspace is running at the default `/` path
 
-### 6. Completion correctness
+## Next implementation targets
 
-- preserve the current `upload_parts` truth model during the first resumable implementation
-- keep multipart completion dependent on durable server-side part records
-- avoid introducing browser-owned completion state
+The remaining near-term tracks, in priority order:
 
-### 7. Observability
+1. **Email-based account recovery** — add email-delivered recovery once a mail channel is intentionally configured; keep backup-code recovery as the emergency fallback
+2. **Auto-resume after network interruption** — resume without requiring a page refresh or user interaction when a part failure is followed by a network-level reconnect (2.4.0 candidate)
+3. **Cross-device resume semantics** — define what durable upload state means when a different device re-enters the same upload plan (longer-term)
 
-- record which phase failed: part transfer, plan lookup, multipart completion, or metadata commit
-- expose enough operator-visible detail to distinguish temporary transfer volatility from unrecoverable state divergence
+## Files changed in 2.3.0
 
-## Files likely to change
-
-- `src/worker.js`
-- `src/lib/auth.js`
-- `src/lib/session.js`
-- `src/lib/files.js`
-- `src/lib/layout.js`
-- `src/lib/client/upload.js` — resumable upload behavior lives here
-- `src/lib/client/boot-wiring.js` — resume UI wiring will land here
-- `src/lib/auth-layout.js`
-- `scripts/private-entry-smoke.mjs`
-- a new migration if resumable state needs additional indexed metadata
-
-## Documentation follow-up
-
-When resumable upload lands, update at minimum:
-
-- `README.md`
-- `docs/en/architecture.md`
-- `docs/en/concurrent-chunked-upload.md`
-- `docs/en/quickstart.md`
-- `docs/en/troubleshooting.md`
-- the Japanese counterparts in `docs/ja/`
+- `src/worker.js` — new `GET /api/files/upload-status` route
+- `src/lib/files.js` — new `getUploadStatus()` function
+- `src/lib/client/upload.js` — resume logic: upload-status query, confirmed-part skip, progress alignment
+- `src/lib/client/boot-wiring.js` — `localStorage` helpers, resume banner, upload-form file-match detection
+- `src/lib/layout.js` — deployment status card, first-deploy banner, `deployment` prop added to `renderAppPage`
+- `src/lib/auth-layout.js` — backup-code confirmation checkbox, setup-key source hint
 
 ## What is intentionally not in scope for the first resumable pass
 
 - cross-device recovery semantics
-- background upload orchestration
+- background upload orchestration or auto-resume on reconnect
 - large refactors of the share system
 - unrelated developer-workflow expansion

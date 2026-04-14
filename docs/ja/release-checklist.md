@@ -1,6 +1,19 @@
 # BurnBox リリース前チェックリスト
 
-*最終更新: April 13, 2026 at 6:57 PM PDT*
+*最終更新: April 14, 2026 at 5:03 AM PDT*
+
+## 2.3.0 アップグレードノート
+
+BurnBox 2.3.0 は resumable upload、deployment status カード、Claim ページ UX 強化、初回デプロイ案内バナーを追加します。新しい D1 マイグレーション、新しい環境変数、デプロイモデルの変更はありません。
+
+2.2.2 からのアップグレード手順:
+
+- 新しい Worker ビルドをデプロイする（`wrangler deploy`）
+- upload、resume バナー、Deployment カード、Logout が正常動作することを確認する
+- データベース変更不要
+- secrets 変更不要
+
+---
 
 ## 2.2.2 アップグレードノート
 

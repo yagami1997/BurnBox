@@ -5,14 +5,43 @@
  */
 export function script() {
   return `
+      async function queryUploadStatus(fileId) {
+        try {
+          const response = await fetch(apiUrl(\`/files/upload-status?fileId=\${encodeURIComponent(fileId)}\`));
+          if (!response.ok) {
+            return null;
+          }
+          return await response.json();
+        } catch {
+          return null;
+        }
+      }
+
       async function uploadFileInChunks(file, initData) {
         const chunkSize = Number(initData.chunkSize) || 5 * 1024 * 1024;
         const totalParts = Number(initData.totalParts) || Math.max(1, Math.ceil(file.size / chunkSize));
-        let uploadedBytes = 0;
 
-        setUploadProgress(0, "Preparing multipart upload", \`0 of \${totalParts} parts uploaded.\`);
+        // Query server for already-confirmed parts so we can resume from the right position.
+        setUploadProgress(0, "Checking upload status", \`Querying server for confirmed parts...\`);
+        const uploadStatus = await queryUploadStatus(initData.fileId);
+        const confirmedSet = new Set(uploadStatus?.confirmedParts || []);
+        const confirmedCount = confirmedSet.size;
+        let uploadedBytes = confirmedCount * chunkSize;
+
+        if (confirmedCount > 0) {
+          setUploadProgress(
+            file.size > 0 ? (uploadedBytes / file.size) * 95 : (confirmedCount / totalParts) * 95,
+            \`Resuming from part \${confirmedCount + 1} of \${totalParts}\`,
+            \`\${confirmedCount} of \${totalParts} parts already confirmed on server.\`,
+          );
+        } else {
+          setUploadProgress(0, "Preparing multipart upload", \`0 of \${totalParts} parts uploaded.\`);
+        }
 
         for (let partNumber = 1; partNumber <= totalParts; partNumber += 1) {
+          if (confirmedSet.has(partNumber)) {
+            continue;
+          }
           const start = (partNumber - 1) * chunkSize;
           const end = Math.min(start + chunkSize, file.size);
           const chunk = file.slice(start, end);

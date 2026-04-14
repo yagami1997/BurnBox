@@ -1,6 +1,6 @@
 # Architecture
 
-*Last updated: April 13, 2026 at 6:45 PM PDT*
+*Last updated: April 14, 2026 at 5:03 AM PDT*
 
 ## Overview
 
@@ -10,15 +10,16 @@ BurnBox is a compact Cloudflare-native control plane:
 - R2 stores file objects
 - D1 stores file metadata, upload state, share state, and audit logs
 
-BurnBox 2.2.2 has five major architectural layers:
+BurnBox 2.3.0 has six major architectural layers:
 
 - upload reliability through chunked multipart ingest
 - share-delivery separation through split domains and stable public handles
 - workspace account security through owner claim, upgrade flow, and in-product session control
 - private workspace route isolation plus operator-visible upload diagnostics
 - frontend module separation — the workspace inline script is now composed from focused client modules under `src/lib/client/`
+- resumable upload — the server holds confirmed part truth; the client queries it on re-entry and resumes from the first missing part without restarting the transfer
 
-The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.2.2 completes the frontend-JS maintainability pass on top of the 2.2.1 baseline. The next implementation step is resumable upload.
+The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.3.0 completes the resumable upload layer on top of the 2.2.2 frontend-module baseline.
 
 One practical warning belongs at the architectural level:
 
@@ -56,6 +57,17 @@ The third major shift is moving workspace authentication from a deployment-passw
 - the long-lived workspace password no longer belongs in deployment configuration
 - backup codes give the workspace a product-level recovery baseline instead of a deployment-secret fallback, while recovery email remains optional per operator policy
 
+### 2.3.0: resumable upload
+
+The sixth major shift makes the server the authority on confirmed part truth and gives the client a recovery path after interruption:
+
+- `GET /api/files/upload-status` returns the confirmed part list, plan status, total parts, and next-part pointer from durable `upload_parts` state
+- the client queries this endpoint before starting the part loop and skips already-confirmed parts; progress reporting is aligned to the actual resume position
+- `localStorage` records the upload plan identifier after `init-upload`; on page refresh, selecting the same file by name and size triggers automatic resume without additional interaction
+- dismissing a pending resume banner calls `abort-upload`, cleaning up the R2 incomplete multipart and D1 upload plan immediately
+
+The design position: the browser is an execution endpoint, not a state authority. An interrupted upload is a partially-committed system state, not a failed request. Recovery requires asking what the server knows — not restarting from zero.
+
 ### 2.2.2: frontend module separation
 
 The fifth major shift is a structural maintainability pass on the workspace UI layer:
@@ -78,14 +90,16 @@ The fourth major shift is operational hardening around the existing private work
 ## Upload flow
 
 1. The owner workspace calls `POST /api/files/init-upload`.
-2. The Worker creates an upload plan in D1.
-3. The browser slices the file into 5 MiB chunks.
-4. Each chunk is sent through the Worker upload channel.
-5. The Worker assembles the final object in R2 using multipart upload.
+2. The Worker creates an upload plan in D1 and returns the `fileId` and chunk geometry.
+3. The client queries `GET /api/files/upload-status` to retrieve already-confirmed parts from D1.
+4. The browser slices the file into 5 MiB chunks; already-confirmed parts are skipped.
+5. Each remaining chunk is sent through the Worker upload channel; the Worker records a confirmed part in `upload_parts` after each successful R2 write.
 6. The workspace calls `POST /api/files/complete-upload`.
-7. The Worker finalizes object assembly and writes the final file record to D1.
+7. The Worker validates that all parts are present and contiguous, finalizes the R2 multipart object, and writes the final file record to D1.
 
-This flow is intentionally stateful. The difficulty is not only moving bytes into R2. The difficulty is preserving correct system state across many part requests, retries, and a final commit boundary.
+On page refresh or re-entry, the client detects a pending `localStorage` record, shows a resume banner, and resumes from step 3 when the same file is selected — no new `init-upload` is issued.
+
+This flow is intentionally stateful. The difficulty is not only moving bytes into R2. The difficulty is preserving correct system state across many part requests, retries, interruptions, and a final commit boundary.
 
 ## Share flow
 

@@ -870,10 +870,12 @@ async function getRecentLegacyLoginFailureCount(env, clientIp) {
 }
 
 async function getClaimLockUntil(env, clientIp) {
-  if (!env.DB || !clientIp) {
+  if (!env.DB) {
     return null;
   }
 
+  // Use a sentinel key for requests with no IP so anonymous callers share a single counter.
+  const ip = clientIp || "__no_ip__";
   const row = await env.DB.prepare(
     `select json_extract(detail_json, '$.lockedUntil') as locked_until
      from auth_events
@@ -881,7 +883,7 @@ async function getClaimLockUntil(env, clientIp) {
        and ip = ?
      order by created_at desc
      limit 1`,
-  ).bind(clientIp).first();
+  ).bind(ip).first();
 
   const lockUntil = row?.locked_until || null;
   if (!lockUntil) {
@@ -891,10 +893,11 @@ async function getClaimLockUntil(env, clientIp) {
 }
 
 async function countRecentClaimFailures(env, clientIp) {
-  if (!env.DB || !clientIp) {
+  if (!env.DB) {
     return 0;
   }
 
+  const ip = clientIp || "__no_ip__";
   const row = await env.DB.prepare(
     `select count(*) as count
      from auth_events
@@ -902,22 +905,15 @@ async function countRecentClaimFailures(env, clientIp) {
        and success = 0
        and ip = ?
        and created_at > ?`,
-  ).bind(clientIp, isoBeforeMinutes(CLAIM_FAILURE_WINDOW_MINUTES)).first();
+  ).bind(ip, isoBeforeMinutes(CLAIM_FAILURE_WINDOW_MINUTES)).first();
   return Number(row?.count || 0);
 }
 
 async function registerClaimFailure(env, clientIp) {
-  if (!clientIp) {
-    await recordAuthEvent(env, {
-      eventType: "claim_code_failed",
-      success: false,
-      ip: null,
-      detail: { reason: "invalid_claim_code", lockedUntil: null },
-    });
-    return null;
-  }
+  // Use sentinel key so callers with no IP share a single counter and can be locked out.
+  const ip = clientIp || "__no_ip__";
 
-  const nextFailureCount = (await countRecentClaimFailures(env, clientIp)) + 1;
+  const nextFailureCount = (await countRecentClaimFailures(env, ip)) + 1;
   const lockedUntil = nextFailureCount >= CLAIM_LOCK_THRESHOLD
     ? isoAfterMinutes(CLAIM_LOCK_MINUTES)
     : null;
@@ -925,7 +921,7 @@ async function registerClaimFailure(env, clientIp) {
   await recordAuthEvent(env, {
     eventType: "claim_code_failed",
     success: false,
-    ip: clientIp,
+    ip,
     detail: { reason: "invalid_claim_code", lockedUntil },
   });
 
@@ -933,7 +929,7 @@ async function registerClaimFailure(env, clientIp) {
     await recordAuthEvent(env, {
       eventType: "claim_code_locked",
       success: false,
-      ip: clientIp,
+      ip,
       detail: { lockedUntil },
     });
   }

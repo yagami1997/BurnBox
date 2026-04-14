@@ -1,99 +1,64 @@
 # 開発計画
 
-*最終更新: April 13, 2026 at 6:45 PM PDT*
+*最終更新: April 14, 2026 at 5:03 AM PDT*
 
 ## 現在の基準
 
-BurnBox 2.2.2 では、4 つの工学層が完成し、残る近接開発軸は 1 本になりました。
+BurnBox 2.3.0 では、5 つの工学層がすべて完成しました。
 
 - Cloudflare Workers、R2、D1 上で安定した multipart upload baseline
-- 導入済みの owner account 認証基盤
+- 導入済みの owner account 認証基盤（deployment password モデルから移行済み）
 - private entry と upload diagnostics による運用可視性の確立
 - frontend-JS の整理完了 — workspace インラインスクリプトを責務別モジュールに分離
+- resumable upload — サーバーが確認済み part truth の権威を持ち、中断後もゼロから再送せず継続できる upload
 
-直近の検証では、`4.3 GB / 870 parts` および `11 GB / 2200 parts` までの転送が、以前のような中途 oscillation を起こさずに完了しています。
+直近の検証では、`4.3 GB / 870 parts` および `11 GB / 2200 parts` までの転送が安定して完了しています。resumable upload は中断・page refresh のシナリオで検証済みです。
 
-次の問いは明確です。中断後の再開コストと不確実性を下げること。その前提となる frontend モジュール境界はすでに整っています。
-
-## 次の実装目標
-
-次の正式な実装目標は次の 2 つです。
-
-1. ~~frontend-JS の整理~~ **2.2.2 で完了**
-2. resumable upload — 中断後も durable server-side state から継続できる upload
-3. email-based recovery と account UX の改善
-
-BurnBox は、browser error、page refresh、mid-transfer network failure の後に upload 全体を最初からやり直すのではなく、server-side の durable state から継続できるようにする必要があります。
-
-## 計画している作業
+## 完了済み実装
 
 ### 1. frontend-JS maintainability pass
 
-**2.2.2 で完了。** monolithic workspace script を `helpers`、`share`、`files`、`upload`、`boot-wiring` の 5 つのクライアントモジュールに分離しました（`src/lib/client/` 以下）。`layout.js` はこれらを import して組み合わせるのみになっています。product behavior の変更はありません。
+**2.2.2 で完了。** monolithic workspace script を `helpers`、`share`、`files`、`upload`、`boot-wiring` の 5 つのクライアントモジュールに分離しました（`src/lib/client/` 以下）。product behavior の変更はありません。
 
-### 2. Account recovery と product polish
+### 2. resume 状態取得 endpoint
 
-- mail channel を明示的に入れる場合の email-based recovery を設計する
-- workspace account card と auth surfaces をさらにコンパクトで分かりやすく整える
-- backup code recovery を emergency fallback として維持する
-- 既存の owner claim / legacy upgrade 動線は崩さず、日常運用の friction を下げる
+**2.3.0 で完了。** `GET /api/files/upload-status?fileId=` は、durable な `upload_parts` state から確認済み part 一覧、plan status、total parts、next-part pointer を返します。サーバーが権威を持ちます。
 
-### 3. recovery 指向の upload protocol
+### 3. client-side resume 動作
 
-- client が upload plan の再開可否を問い合わせる方法を定義する
-- server が durable part truth として何を返すかを定義する
-- 再開可能な plan と再初期化が必要な plan を区別する
+**2.3.0 で完了。** upload client は part loop 開始前に upload status を問い合わせ、確認済み part をスキップします。進捗表示は実際の再開位置に合わせて整合されます。`init-upload` 後に `localStorage` へ upload plan の識別子・ファイル名・サイズ・chunk geometry を記録します。page refresh 後、ファイル名とサイズが一致するファイルを選ぶと自動的に resume が始まります。追加操作は不要です。
 
-### 4. resume 状態取得 endpoint
+### 4. completion correctness
 
-- upload plan の状態を問い合わせる Worker route を追加する
-- uploaded part numbers、plan status、declared size、chunk geometry を返す
-- multipart truth の権威は server に残す
+**2.3.0 で完了。** resume バナーを dismiss すると `abort-upload` が呼ばれ、R2 の incomplete multipart と D1 の upload plan が即座に削除されます。resumable 転送中も既存の `upload_parts` truth model は維持されます。multipart completion は引き続き durable な server-side part records に依存します。
 
-### 5. client-side resume 動作
+### 5. operator experience hardening
 
-- file 全体を再送せず、欠けている part だけを継続送信する
-- page refresh や workspace 再入場後も継続できるようにする
-- 既に durable な part を飛ばす場合でも、進捗表示を正直に保つ
+**2.3.0 で完了。**
+- Claim ページ: workspace 入室前に必須の確認 checkbox、`CLAIM_KEY` を設定していない operator 向けの setup key 出所説明
+- Deployment status カード: ログイン済みオーナーに対し private entry、workspace host、share host、`SHARE_LINK_SECRET` 設定状態（未設定時は警告）、recovery email、hostname sharing の状態を表示
+- 初回デプロイ案内バナー: workspace が `/` で動作している場合に `APP_ENTRY_PATH` の設定を案内する一度限りのバナーを表示
 
-### 6. completion correctness
+## 次の実装目標
 
-- 最初の resumable 実装では現在の `upload_parts` truth model を維持する
-- multipart completion は durable な server-side part records に依存させる
-- browser 主導の completion state は導入しない
+優先順位順：
 
-### 7. observability
+1. **email-based account recovery** — mail channel を明示的に設定した場合の email 経由の recovery を追加する（backup code は引き続き緊急用フォールバック）
+2. **ネットワーク復旧後の自動 resume** — page refresh や操作なしで、part 失敗後のネットワーク再接続から自動的に再開する（2.4.0 候補）
+3. **cross-device resume semantics** — 異なるデバイスが同じ upload plan に再入場する場合の durable state の定義（longer-term）
 
-- どの段で失敗したかを記録する: part transfer、plan lookup、multipart completion、metadata commit
-- 一時的な揺らぎと、回復不能な state divergence を区別できるだけの operator-visible detail を出す
+## 2.3.0 で変更されたファイル
 
-## 変更対象になりやすいファイル
-
-- `src/worker.js`
-- `src/lib/auth.js`
-- `src/lib/session.js`
-- `src/lib/files.js`
-- `src/lib/layout.js`
-- `src/lib/client/upload.js` — resumable upload の動作はここに入る
-- `src/lib/client/boot-wiring.js` — resume UI の配線はここに入る
-- `src/lib/auth-layout.js`
-- `scripts/private-entry-smoke.mjs`
-- resumable state に追加 index や metadata が必要なら新しい migration
-
-## ドキュメントの追随
-
-resumable upload が入ったら、少なくとも次を更新します。
-
-- `README.md`
-- `docs/en/architecture.md`
-- `docs/en/concurrent-chunked-upload.md`
-- `docs/en/quickstart.md`
-- `docs/en/troubleshooting.md`
-- `docs/ja/` 配下の対応文書
+- `src/worker.js` — 新規ルート `GET /api/files/upload-status`
+- `src/lib/files.js` — 新規関数 `getUploadStatus()`
+- `src/lib/client/upload.js` — resume 処理: upload-status 問い合わせ、確認済み part スキップ、進捗整合
+- `src/lib/client/boot-wiring.js` — `localStorage` ヘルパー、resume バナー、ファイル一致検知
+- `src/lib/layout.js` — deployment status カード、初回デプロイバナー、`renderAppPage` への `deployment` prop 追加
+- `src/lib/auth-layout.js` — backup code 確認 checkbox、setup key 出所案内
 
 ## 最初の resumable pass で意図的に範囲外とするもの
 
 - cross-device recovery semantics
-- background upload orchestration
+- background upload orchestration・自動 resume on reconnect
 - share system の大規模再設計
 - 関連の薄い開発フロー拡張

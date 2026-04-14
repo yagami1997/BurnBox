@@ -1,10 +1,10 @@
 # Contributing
 
-*Last updated: April 13, 2026 at 6:57 PM PDT*
+*Last updated: April 14, 2026 at 5:03 AM PDT*
 
 Thank you for contributing to BurnBox.
 
-The current shipped baseline is BurnBox `2.2.2`.
+The current shipped baseline is BurnBox `2.3.0`.
 
 ## Scope
 
@@ -39,7 +39,7 @@ If a prospective fork operator is unwilling to meet that standard, BurnBox is no
 
 ## Development guide
 
-BurnBox `2.2.2` is the current release line. The architecture direction is:
+BurnBox `2.3.0` is the current release line. The architecture direction is:
 
 - an owner-account auth layer inside the product
 - a private workspace domain for authenticated operations

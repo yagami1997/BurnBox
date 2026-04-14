@@ -12,7 +12,7 @@ import {
   updateRecoveryEmail,
   upgradeLegacyOwner,
 } from "./lib/auth.js";
-import { abortUploadPlan, completeUpload, createUploadPlan, deleteFile, getUploadDiagnostics, uploadFilePart } from "./lib/files.js";
+import { abortUploadPlan, completeUpload, createUploadPlan, deleteFile, getUploadDiagnostics, getUploadStatus, uploadFilePart } from "./lib/files.js";
 import { html, json, noContent, readJson, timingSafeEqual, withDefaultHeaders } from "./lib/http.js";
 import { renderAuthPage } from "./lib/auth-layout.js";
 import { renderAppPage } from "./lib/layout.js";
@@ -115,7 +115,19 @@ async function route(request, env) {
   if (request.method === "GET" && privateRoutePath === "/") {
     if (authState.state === "active" && activeOwner) {
       const files = await listFiles(env);
-      return html(renderAppPage({ files, owner: activeOwner, apiBase, appEntryPath }));
+      return html(renderAppPage({
+        files,
+        owner: activeOwner,
+        apiBase,
+        appEntryPath,
+        deployment: {
+          workspaceHost: host,
+          shareHost: env.ALLOWED_SHARE_HOSTS ? String(env.ALLOWED_SHARE_HOSTS).split(",")[0].trim() : "",
+          shareLinkSecretConfigured: Boolean(env.SHARE_LINK_SECRET),
+          recoveryEmail: activeOwner.recoveryEmail || "",
+          hostnameSharing: Boolean(env.SHARE_SUBDOMAIN_BASE_DOMAIN || env.ALLOWED_SHARE_HOSTS),
+        },
+      }));
     }
 
     if (authState.state === "unclaimed") {
@@ -460,6 +472,24 @@ async function route(request, env) {
 
     const files = await listFiles(env);
     return json({ files });
+  }
+
+  if (request.method === "GET" && privateRoutePath === "/api/files/upload-status") {
+    if (!activeOwner) {
+      return json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const fileId = url.searchParams.get("fileId");
+    if (!fileId) {
+      return json({ error: "fileId query parameter is required" }, { status: 400 });
+    }
+
+    const uploadStatus = await getUploadStatus(env, fileId);
+    if (!uploadStatus) {
+      return json({ error: "Upload plan not found" }, { status: 404 });
+    }
+
+    return json(uploadStatus);
   }
 
   if (request.method === "POST" && privateRoutePath === "/api/files/init-upload") {

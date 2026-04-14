@@ -1,10 +1,10 @@
 # Deployment
 
-*Last updated: April 13, 2026 at 7:10 PM PDT*
+*Last updated: April 14, 2026 at 5:03 AM PDT*
 
 ## Overview
 
-BurnBox 2.2.2 is designed around a split-domain deployment model plus an owner-account auth flow:
+BurnBox 2.3.0 is designed around a split-domain deployment model plus an owner-account auth flow:
 
 - a private workspace domain for authenticated administration, such as `https://console.example.com`
 - a public share domain for external file delivery, such as `https://relay.example.net`

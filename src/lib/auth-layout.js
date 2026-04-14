@@ -227,7 +227,32 @@ export function renderAuthPage({ view, ownerEmail = "", claimCodeRequired = true
         if (!recoveryCodesBox || !Array.isArray(codes) || !codes.length) return;
         recoveryCodesBox.textContent = codes.join("\\n");
         recoveryCodesBox.classList.add("active");
-        continueButton?.classList.remove("hidden");
+
+        // Require the owner to confirm they have saved the backup codes before continuing.
+        const existingConfirm = document.getElementById("backupCodeConfirm");
+        if (!existingConfirm) {
+          const confirmWrap = document.createElement("label");
+          confirmWrap.id = "backupCodeConfirm";
+          confirmWrap.style.cssText = "display:flex;align-items:flex-start;gap:0.5rem;margin-top:0.75rem;font-size:0.9rem;cursor:pointer;";
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.style.marginTop = "0.2rem";
+          checkbox.addEventListener("change", () => {
+            if (continueButton) continueButton.disabled = !checkbox.checked;
+          });
+
+          const label = document.createElement("span");
+          label.textContent = "I have saved these backup codes in a secure location. I understand they will not be shown again.";
+
+          confirmWrap.append(checkbox, label);
+          recoveryCodesBox.insertAdjacentElement("afterend", confirmWrap);
+        }
+
+        if (continueButton) {
+          continueButton.classList.remove("hidden");
+          continueButton.disabled = true;
+        }
       }
 
       function apiUrl(path) {
@@ -366,7 +391,7 @@ function renderPrimaryPanel(view, ownerEmail, claimCodeRequired) {
       <h1>Claim your BurnBox</h1>
       <p>This workspace is ready. Create the owner account to continue.</p>
       <form class="stack" id="claimForm" style="margin-top:22px;">
-        ${claimCodeRequired ? `<div class="field"><label for="claimCode">Claim code</label><input id="claimCode" name="claimCode" type="text" autocomplete="one-time-code" required /></div>` : ""}
+        ${claimCodeRequired ? `<div class="field"><label for="claimCode">Setup key</label><p class="field-hint" style="margin:0 0 0.4rem;font-size:0.85rem;color:var(--color-muted,#888);">Enter the key you set as <code>CLAIM_KEY</code>. If you did not configure one, find the one-time token in your Worker logs (Cloudflare Dashboard → Workers → your worker → Logs).</p><input id="claimCode" name="claimCode" type="text" autocomplete="one-time-code" required /></div>` : ""}
         <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required /></div>
         <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="new-password" required /></div>
         <div class="field"><label for="confirmPassword">Confirm password</label><input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required /></div>
