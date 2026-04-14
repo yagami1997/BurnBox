@@ -22,6 +22,7 @@
 
 - [What It Does](#what-it-does)
 - [Stack](#stack)
+- [Changelog](#-changelog)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
@@ -50,6 +51,108 @@ The public link does not expose your admin surface. The admin surface does not e
 - Cloudflare R2 — durable object storage with native Workers multipart binding
 - Cloudflare D1 — file metadata, upload state, share state, audit records
 - Server-rendered HTML, CSS, and JavaScript — no build step, no frontend framework, minimal deployment surface
+
+## 📋 Changelog
+
+### April 13, 2026 · BurnBox 2.2.2 Frontend JS Refactor · 6:45 PM PDT
+
+- separates the monolithic workspace inline script into five focused client modules: `helpers`, `share`, `files`, `upload`, and `boot-wiring`
+- `layout.js` now composes the page script from imported modules instead of carrying all frontend JS detail inline
+- preserves `boot.apiBase` and `boot.appEntryPath` as the sole source of private API paths — no bare `/api/...` strings reintroduced
+- keeps Logout, Refresh, Upload, share create/revoke, and all account security actions stable under prefixed private-entry routes
+- no product behavior changes, no new API routes, no new capabilities — structural maintainability pass only
+- establishes a cleaner frontend module boundary ahead of the resumable upload work in 2.3.0
+
+Developer guidance for this release:
+
+- [Quickstart](docs/en/quickstart.md)
+- [Deployment](docs/en/deployment.md)
+- [Architecture](docs/en/architecture.md)
+- [Development Plan](docs/en/development-plan.md)
+- [Documentation index](docs/README.md)
+
+<details>
+<summary>Older changelog entries</summary>
+
+### April 13, 2026 · BurnBox 2.2.1 Upload Diagnostics and Private Entry Release · 6:06 AM PDT
+
+- ships deployment-managed private workspace entry support through `APP_ENTRY_PATH`
+- moves private workspace pages and private API routes under the derived private entry prefix instead of exposing the admin surface at the root path by default
+- adds operator-visible `Private entry` display inside the workspace without making the route editable from the UI
+- adds upload-diagnostics aggregation for unfinished or failed uploads so operators can inspect multipart progress from durable server-side state
+- hardens multipart consistency with explicit abort cleanup on failed uploads and compensating object deletion when metadata commit fails after multipart completion
+- adds a private-entry smoke check to keep prefixed workspace routing from regressing
+- keeps the owner-account auth baseline from 2.2.0 intact while preparing a smaller frontend-JS refactor before resumable upload
+
+Developer guidance for this release:
+
+- [Quickstart](docs/en/quickstart.md)
+- [Deployment](docs/en/deployment.md)
+- [Architecture](docs/en/architecture.md)
+- [Development Plan](docs/en/development-plan.md)
+- [Release Checklist](docs/en/release-checklist.md)
+- [Troubleshooting](docs/en/troubleshooting.md)
+- [Documentation index](docs/README.md)
+
+### April 12, 2026 · BurnBox 2.2.0 Owner Account and Security Upgrade · 8:36 PM PDT
+
+- ships owner-account authentication inside the product instead of relying on a long-lived deployment password
+- adds `Claim your BurnBox` for first-run setup and `Upgrade your BurnBox security` for legacy `ADMIN_PASSWORD` deployments
+- moves password change, recovery-email management, backup-code regeneration, logout, and device-session control into the workspace
+- hardens auth behavior with generic invalid-credential logging, recovery lockouts, legacy-login throttling, claim-token atomicity, and password-hash sanitization
+- keeps public share delivery, multipart upload, and stable `/h/{publicHandle}` links intact while upgrading the workspace auth model
+- refreshes the public README and operator docs so deployment, migration, upgrade, and recovery behavior all describe the shipped 2.2.0 system
+- adds a legal-risk documentation baseline that clarifies BurnBox as a self-hosted tool author project and assigns deployment compliance duties to instance operators
+
+Developer guidance for this release:
+
+- [Quickstart](docs/en/quickstart.md)
+- [Deployment](docs/en/deployment.md)
+- [Architecture](docs/en/architecture.md)
+- [Development Plan](docs/en/development-plan.md)
+- [Release Checklist](docs/en/release-checklist.md)
+- [Documentation index](docs/README.md)
+
+### April 11, 2026 · BurnBox 2.1.1 Reliability and Research Release · 12:18 PM PDT
+
+- moved multipart assembly fully onto native Workers R2 APIs and removed the extra S3-compatible signing hop
+- clarified retry ownership so transient recovery lives in the client instead of expanding Worker execution paths
+- tightened multipart completion behavior and reduced avoidable per-part coordination overhead
+- validated stable multipart transfers from `419` parts through `4.3 GB / 870 parts` and `11 GB / 2200 parts`, reinforcing the cumulative-reliability diagnosis
+- rewrote the public docs to explain why large-file edge upload is a stateful systems problem rather than a simple timeout problem
+- established three graduate-level research directions for the project: resumable multipart protocols, cost-aware coordination state, and capability-oriented public distribution
+- established resumable upload as the next engineering baseline to reduce restart cost after interruption
+- refined public-facing failure interaction so external entry points now present tighter and more consistent error behavior under invalid or unavailable requests
+
+Developer guidance for this release:
+
+- [Concurrent Chunked Upload Design](docs/en/concurrent-chunked-upload.md)
+- [Architecture](docs/en/architecture.md)
+- [Share Link Delivery Architecture](docs/en/share-link-delivery.md)
+- [Development Plan](docs/en/development-plan.md)
+- [Documentation index](docs/README.md)
+
+### April 10, 2026 · BurnBox 2.1.0 Share-Domain Release · 7:14 PM PDT
+
+- shipped split-domain sharing with a private workspace domain and a public share domain
+- introduced `public_handle` as the stable public identifier for share links
+- changed the default stable share URL to `https://relay.example.net/h/{publicHandle}`
+- kept legacy `/s/{token}` links for compatibility instead of breaking existing shares
+- removed the mandatory share landing page from the default flow and restored direct-download behavior
+- fixed cross-device `Copy link` behavior by making active share URLs reconstructable on the server
+- documented Cloudflare DNS, route, and certificate constraints for hostname-style sharing
+
+### April 9, 2026 · BurnBox 2.0.0 Major Refactor and Chunked Upload Rollout · 5:42 AM PDT
+
+- rebuilt BurnBox around a single Cloudflare Worker, R2, and D1 architecture
+- replaced the legacy public-upload flow with a private admin workspace
+- introduced signed admin sessions and hashed share-token storage
+- redesigned the interface, share controls, and documentation structure for public release
+- moved the upload path from optimistic single-request transfer to a chunked multipart model
+- adopted 5 MiB chunk slicing for stability-first transfer behavior
+- added D1-backed upload plans and uploaded-part tracking
+
+</details>
 
 ## Architecture
 
@@ -186,57 +289,6 @@ npm run deploy
 ```
 
 After deploy: complete `Claim your BurnBox` (new deployment) or `Upgrade your BurnBox security` (legacy). **Save the backup codes before closing the browser — they are shown once.**
-
-<details>
-<summary>Changelog</summary>
-
-### April 13, 2026 · BurnBox 2.2.2 · Frontend JS Refactor · 6:45 PM PDT
-
-- splits the monolithic workspace inline script into five client modules: `helpers`, `share`, `files`, `upload`, `boot-wiring`
-- `layout.js` composes the page script from imported modules instead of carrying all frontend JS inline
-- preserves `boot.apiBase` as the sole source of private API paths — no bare `/api/...` strings reintroduced
-- no product behavior changes, no new API routes — structural maintainability pass only
-- establishes the frontend module boundary ahead of resumable upload in 2.3.0
-
-### April 13, 2026 · BurnBox 2.2.1 · Upload Diagnostics and Private Entry · 6:06 AM PDT
-
-- ships `APP_ENTRY_PATH` for deployment-managed private workspace entry
-- moves workspace pages and private API routes under the derived prefix
-- adds upload-diagnostics aggregation for unfinished or failed uploads
-- hardens multipart consistency with abort cleanup and compensating object deletion
-- adds a private-entry smoke check to keep prefixed routing from regressing
-
-### April 12, 2026 · BurnBox 2.2.0 · Owner Account and Security Upgrade · 8:36 PM PDT
-
-- ships owner-account authentication replacing the long-lived deployment password
-- adds `Claim your BurnBox` for first-run setup and `Upgrade your BurnBox security` for legacy deployments
-- moves password change, recovery-email management, backup-code regeneration, logout, and device-session control into the workspace
-- hardens auth with generic logging, recovery lockouts, legacy-login throttling, claim-token atomicity, and password-hash sanitization
-
-### April 11, 2026 · BurnBox 2.1.1 · Reliability and Research Release · 12:18 PM PDT
-
-- moved multipart assembly to native Workers R2 APIs, removed S3-compatible signing hop
-- clarified retry ownership: transient recovery lives in the client, Worker execution path stays short
-- validated stable multipart transfers through `4.3 GB / 870 parts` and `11 GB / 2200 parts`
-- established resumable upload as the next engineering baseline
-
-### April 10, 2026 · BurnBox 2.1.0 · Share-Domain Release · 7:14 PM PDT
-
-- shipped split-domain sharing with separate workspace and share domains
-- introduced `public_handle` as stable public share identifier
-- changed default stable share URL to `/h/{publicHandle}`
-- kept legacy `/s/{token}` links for compatibility
-- fixed cross-device `Copy link` by making active share URLs reconstructable on the server
-
-### April 9, 2026 · BurnBox 2.0.0 · Major Refactor and Chunked Upload · 5:42 AM PDT
-
-- rebuilt around a single Cloudflare Worker, R2, and D1 architecture
-- replaced legacy public-upload flow with a private admin workspace
-- introduced signed sessions and hashed share-token storage
-- moved upload path from single-request transfer to chunked multipart with 5 MiB slices
-- added D1-backed upload plans and part tracking
-
-</details>
 
 ## Documentation
 
