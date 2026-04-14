@@ -45,6 +45,8 @@ The public link does not expose your admin surface. The admin surface does not e
 
 ![BurnBox workspace overview](docs/assets/ScreenShot_2026-04-13_121901_413.png)
 
+*The screenshot shows an experimental deployment. Colors, labels, layout, and file controls are yours to change — fork the repo and make it your own.*
+
 ## Stack
 
 - Cloudflare Workers — routing, session enforcement, upload coordination, share validation, response delivery
