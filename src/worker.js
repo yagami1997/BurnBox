@@ -927,7 +927,7 @@ function isPublicFacingHost(request, env) {
 
 function notFoundForRequest(request) {
   if ((request.headers.get("accept") || "").includes("text/html")) {
-    return html("<h1>Not found</h1>", { status: 404 });
+    return html(renderPublicHostUnavailablePage({ status: 404 }), { status: 404 });
   }
 
   return json({ error: "Not found" }, { status: 404 });

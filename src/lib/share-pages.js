@@ -211,9 +211,9 @@ export function renderPublicHostUnavailablePage(options = {}) {
       }
     : {
         statusCode: 503,
-        title: "Fatal server error",
-        description: "The server is unavailable due to a fatal internal failure.",
-        detail: "A critical service error caused the endpoint to go offline. Please try again later.",
+        title: "Service unavailable",
+        description: "The requested endpoint is currently unavailable.",
+        detail: "A critical service error or routing condition prevented the request from completing. Please try again later.",
       };
 
   return renderInfrastructureErrorPage(copy);
@@ -337,6 +337,12 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
             color: #f38020;
             font-weight: 700;
             letter-spacing: 0.02em;
+          }
+          @media (max-width: 760px) {
+            .footer {
+              flex-direction: column;
+              align-items: flex-start;
+            }
           }
         </style>
       </head>
