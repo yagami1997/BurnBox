@@ -1,8 +1,23 @@
-# BurnBox 2.2.1 Release Checklist
+# BurnBox Release Checklist
 
-*Last updated: April 13, 2026 at 6:06 AM PDT*
+*Last updated: April 13, 2026 at 6:57 PM PDT*
 
-Use this checklist before promoting BurnBox 2.2.1 to a shared environment.
+## 2.2.2 Upgrade Notes
+
+BurnBox 2.2.2 is a frontend-JS maintainability release. There are no new D1 migrations, no new environment variables, and no changes to the deployment model.
+
+To upgrade from 2.2.1:
+
+- deploy the new Worker build (`wrangler deploy`)
+- confirm all existing workspace actions still work: Logout, Refresh, upload, share create/revoke, account security panels
+- no database changes required
+- no secrets changes required
+
+---
+
+## 2.2.1 Full Checklist
+
+Use this checklist before promoting BurnBox 2.2.1 (or later) to a shared environment for the first time.
 
 ## Environment
 

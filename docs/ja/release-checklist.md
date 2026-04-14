@@ -1,8 +1,23 @@
-# BurnBox 2.2.1 リリース前チェックリスト
+# BurnBox リリース前チェックリスト
 
-*最終更新: April 13, 2026 at 6:06 AM PDT*
+*最終更新: April 13, 2026 at 6:57 PM PDT*
 
-BurnBox 2.2.1 を共有環境へ上げる前に、このチェックリストを使って確認してください。
+## 2.2.2 アップグレードノート
+
+BurnBox 2.2.2 は frontend-JS の maintainability pass リリースです。新しい D1 マイグレーション、新しい環境変数、デプロイモデルの変更はありません。
+
+2.2.1 からのアップグレード手順:
+
+- 新しい Worker ビルドをデプロイする（`wrangler deploy`）
+- 既存の workspace 操作がすべて正常動作することを確認する：Logout、Refresh、upload、share create/revoke、account security panel
+- データベース変更不要
+- secrets 変更不要
+
+---
+
+## 2.2.1 フルチェックリスト
+
+BurnBox 2.2.1 以降を共有環境へ初めて上げる前に、このチェックリストを使って確認してください。
 
 ## Environment
 
