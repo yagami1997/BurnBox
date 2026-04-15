@@ -1,6 +1,6 @@
 # BurnBox 法的リスク声明
 
-*最終更新: April 13, 2026*
+*最終更新: April 14, 2026 at 6:29 PM PDT*
 
 ## 1. プロジェクトの位置づけ
 
@@ -33,6 +33,8 @@ BurnBox を自分自身、組織、または third party のために fork、dep
 - 法令上必要な operational record の保存と提出
 - access control、data security、incident response measure の実装
 - 必要に応じた sector-specific rule、data localization、cross-border transfer、consumer-protection obligation の評価
+
+deployer 向けのプライバシーポリシーテンプレートが [`docs/en/privacy-policy-template.md`](../en/privacy-policy-template.md) に用意されています。このテンプレートは、BurnBox deployment が収集するデータカテゴリ、推奨保持期間、主要法域（GDPR・CCPA/CPRA・中国 PIPL）における data subject rights の文言を網羅しています。公開前に deployer が内容を確認・適応する必要があり、専門家の法律助言の代替にはなりません。
 
 運用形態によっては、特に次の法制度が関係します。
 

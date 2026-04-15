@@ -56,6 +56,24 @@ The public link does not expose your admin surface. The admin surface does not e
 
 ## 📋 Changelog
 
+### April 14, 2026 · BurnBox 2.3.1 Compliance Patch · 6:16 PM PDT
+
+- adds `docs/en/maintenance.md` — SQL scripts and Cron Trigger guidance for periodic cleanup of `auth_events`, `audit_logs`, and expired token records; includes retention windows and an automated cleanup scaffold
+- adds `docs/en/privacy-policy-template.md` — a deployer-ready privacy policy template covering GDPR, CCPA/CPRA, and China's PIPL; documents all data categories collected by a BurnBox deployment, retention periods, cookie declaration, and data-subject rights
+- updates `docs/en/legal-risk-statement.md` to reference the privacy policy template from the deployer responsibility section
+- adds `license` field (`GPL-3.0-only`) to `package.json`
+- bumps version to 2.3.1
+
+Developer guidance for this release:
+
+- [Maintenance and Data Retention](docs/en/maintenance.md)
+- [Privacy Policy Template](docs/en/privacy-policy-template.md)
+- [Legal Risk Statement](docs/en/legal-risk-statement.md)
+- [Documentation index](docs/README.md)
+
+<details>
+<summary>Older changelog entries</summary>
+
 ### April 14, 2026 · BurnBox 2.3.0 Resumable Upload Release · 5:03 AM PDT
 
 - adds `GET /api/files/upload-status` — a server-side query endpoint that returns confirmed part numbers, plan status, and next-part pointer from durable `upload_parts` state; the server is the authority on multipart truth, not the browser
@@ -74,9 +92,6 @@ Developer guidance for this release:
 - [Architecture](docs/en/architecture.md)
 - [Development Plan](docs/en/development-plan.md)
 - [Documentation index](docs/README.md)
-
-<details>
-<summary>Older changelog entries</summary>
 
 ### April 13, 2026 · BurnBox 2.2.2 Frontend JS Refactor · 6:45 PM PDT
 
@@ -319,6 +334,8 @@ English:
 [Concurrent Chunked Upload Design](docs/en/concurrent-chunked-upload.md) ·
 [Development Plan](docs/en/development-plan.md) ·
 [Troubleshooting](docs/en/troubleshooting.md) ·
+[Maintenance and Data Retention](docs/en/maintenance.md) ·
+[Privacy Policy Template](docs/en/privacy-policy-template.md) ·
 [Legal Risk Statement](docs/en/legal-risk-statement.md) ·
 [Repository Boundaries](docs/en/repository-boundaries.md)
 

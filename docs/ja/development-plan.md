@@ -1,16 +1,17 @@
 # 開発計画
 
-*最終更新: April 14, 2026 at 5:03 AM PDT*
+*最終更新: April 14, 2026 at 6:29 PM PDT*
 
 ## 現在の基準
 
-BurnBox 2.3.0 では、5 つの工学層がすべて完成しました。
+BurnBox 2.3.1 では、6 つの工学層がすべて完成しました。
 
 - Cloudflare Workers、R2、D1 上で安定した multipart upload baseline
 - 導入済みの owner account 認証基盤（deployment password モデルから移行済み）
 - private entry と upload diagnostics による運用可視性の確立
 - frontend-JS の整理完了 — workspace インラインスクリプトを責務別モジュールに分離
 - resumable upload — サーバーが確認済み part truth の権威を持ち、中断後もゼロから再送せず継続できる upload
+- コンプライアンス文書基盤 — データ保持ポリシー、deployer 向けプライバシーポリシーテンプレート、法的リスクガイダンスの整備
 
 直近の検証では、`4.3 GB / 870 parts` および `11 GB / 2200 parts` までの転送が安定して完了しています。resumable upload は中断・page refresh のシナリオで検証済みです。
 
@@ -39,13 +40,28 @@ BurnBox 2.3.0 では、5 つの工学層がすべて完成しました。
 - Deployment status カード: ログイン済みオーナーに対し private entry、workspace host、share host、`SHARE_LINK_SECRET` 設定状態（未設定時は警告）、recovery email、hostname sharing の状態を表示
 - 初回デプロイ案内バナー: workspace が `/` で動作している場合に `APP_ENTRY_PATH` の設定を案内する一度限りのバナーを表示
 
+### 6. コンプライアンス文書基盤
+
+**2.3.1 で完成。**
+- `docs/en/maintenance.md` — `auth_events`、`audit_logs`、期限切れ token レコードの定期クリーンアップ SQL スクリプト。推奨保持期間（auth イベント 90 日、audit ログ 1 年）と Cloudflare Cron Trigger 自動化スキャフォールドを含む
+- `docs/en/privacy-policy-template.md` — BurnBox deployment が収集するすべてのデータカテゴリ、保持期間、cookie 宣言、GDPR・CCPA/CPRA・中国 PIPL に基づく data subject rights を網羅した deployer 向けテンプレート
+- `docs/en/legal-risk-statement.md` — deployer 責任セクションにプライバシーポリシーテンプレートへの参照を追加
+- `package.json` — `"license": "GPL-3.0-only"` フィールドを追加、バージョンを `2.3.1` に更新
+
 ## 次の実装目標
 
 優先順位順：
 
-1. **email-based account recovery** — mail channel を明示的に設定した場合の email 経由の recovery を追加する（backup code は引き続き緊急用フォールバック）
+1. **email-based account recovery** — `password_reset_tokens` テーブルはすでに schema に存在する。mail channel を明示的に設定した場合の email 経由の reset を追加する（backup code は引き続き緊急用フォールバック）（2.4.0）
 2. **ネットワーク復旧後の自動 resume** — page refresh や操作なしで、part 失敗後のネットワーク再接続から自動的に再開する（2.4.0 候補）
 3. **cross-device resume semantics** — 異なるデバイスが同じ upload plan に再入場する場合の durable state の定義（longer-term）
+
+## 2.3.1 で変更されたファイル
+
+- `package.json` — バージョン `2.3.0` → `2.3.1`、`"license": "GPL-3.0-only"` 追加
+- `docs/en/maintenance.md` — 新規ファイル
+- `docs/en/privacy-policy-template.md` — 新規ファイル
+- `docs/en/legal-risk-statement.md` — セクション 3 にプライバシーテンプレート参照を追加
 
 ## 2.3.0 で変更されたファイル
 

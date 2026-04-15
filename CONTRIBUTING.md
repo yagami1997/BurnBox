@@ -1,10 +1,10 @@
 # Contributing
 
-*Last updated: April 14, 2026 at 5:03 AM PDT*
+*Last updated: April 14, 2026 at 6:29 PM PDT*
 
 Thank you for contributing to BurnBox.
 
-The current shipped baseline is BurnBox `2.3.0`.
+The current shipped baseline is BurnBox `2.3.1`.
 
 ## Scope
 
@@ -39,7 +39,7 @@ If a prospective fork operator is unwilling to meet that standard, BurnBox is no
 
 ## Development guide
 
-BurnBox `2.3.0` is the current release line. The architecture direction is:
+BurnBox `2.3.1` is the current release line. The architecture direction is:
 
 - an owner-account auth layer inside the product
 - a private workspace domain for authenticated operations
@@ -54,8 +54,9 @@ The current engineering priorities are:
 
 - keep the owner-account security baseline clean and auditable
 - preserve the private-entry and upload-diagnostics baseline
-- build resumable upload on top of the now-stable frontend module structure
+- keep the resumable upload baseline stable — server holds confirmed part truth, client resumes from the first missing part
 - preserve Cloudflare-native deployment without introducing unnecessary backend sprawl
+- maintain compliance documentation alongside each release — data retention policy, privacy policy template, and legal risk guidance must stay current
 
 This route exists for technical reasons, not just UI preference:
 
@@ -77,6 +78,8 @@ At minimum, review:
 - `SECURITY.md`
 - `docs/README.md`
 - `docs/en/legal-risk-statement.md`
+- `docs/en/privacy-policy-template.md`
+- `docs/en/maintenance.md`
 - `docs/en/quickstart.md`
 - `docs/en/deployment.md`
 - `docs/en/architecture.md`

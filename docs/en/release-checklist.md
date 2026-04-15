@@ -1,6 +1,19 @@
 # BurnBox Release Checklist
 
-*Last updated: April 14, 2026 at 5:03 AM PDT*
+*Last updated: April 14, 2026 at 6:29 PM PDT*
+
+## 2.3.1 Upgrade Notes
+
+BurnBox 2.3.1 is a documentation and metadata patch. There are no new D1 migrations, no new environment variables, no API changes, and no changes to the deployment model.
+
+To upgrade from 2.3.0:
+
+- deploy the new Worker build (`wrangler deploy`)
+- no database changes required
+- no secrets changes required
+- review `docs/en/maintenance.md` and schedule periodic D1 cleanup appropriate for your deployment's compliance obligations
+
+---
 
 ## 2.3.0 Upgrade Notes
 

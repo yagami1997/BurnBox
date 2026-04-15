@@ -1,10 +1,10 @@
 # デプロイ
 
-*最終更新: April 14, 2026 at 5:03 AM PDT*
+*最終更新: April 14, 2026 at 6:29 PM PDT*
 
 ## 概要
 
-BurnBox 2.3.0 はドメイン分離に加えて、owner account による認証導線を前提にしています。
+BurnBox 2.3.1 はドメイン分離に加えて、owner account による認証導線を前提にしています。
 
 - 認証済み管理操作を行う private workspace domain
 - 外部向け共有リンクを配信する public share domain

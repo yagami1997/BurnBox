@@ -1,6 +1,6 @@
 # BurnBox Legal Risk Statement
 
-*Last updated: April 13, 2026*
+*Last updated: April 14, 2026 at 6:29 PM PDT*
 
 ## 1. Project characterization
 
@@ -33,6 +33,8 @@ That responsibility may include:
 - retaining and producing operational records where required by law
 - implementing access control, data security, and incident-response measures
 - assessing sector-specific, data-localization, cross-border transfer, and consumer-protection obligations where relevant
+
+A deployer privacy policy template is available in this repository at [`docs/en/privacy-policy-template.md`](privacy-policy-template.md). The template covers the data categories BurnBox collects, suggested retention periods, and data-subject rights language for major jurisdictions including GDPR, CCPA/CPRA, and China's PIPL. It must be reviewed and adapted by the deployer before publication and is not a substitute for qualified legal advice.
 
 The following legal frameworks are especially relevant, depending on how a deployment is operated:
 

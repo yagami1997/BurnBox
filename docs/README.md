@@ -1,6 +1,6 @@
 # Documentation
 
-*Last updated: April 13, 2026 at 6:57 PM PDT*
+*Last updated: April 14, 2026 at 6:29 PM PDT*
 
 This directory contains the public operator and engineering documentation for BurnBox.
 
@@ -30,6 +30,8 @@ That path covers:
 - [Quickstart](en/quickstart.md)
 - [AI Deployment Handoff](en/ai-deployment-handoff.md)
 - [Deployment](en/deployment.md)
+- [Maintenance and Data Retention](en/maintenance.md)
+- [Privacy Policy Template](en/privacy-policy-template.md)
 - [Legal Risk Statement](en/legal-risk-statement.md)
 - [Architecture](en/architecture.md)
 - [Development Plan](en/development-plan.md)

@@ -1,6 +1,6 @@
 # Architecture
 
-*Last updated: April 14, 2026 at 5:03 AM PDT*
+*Last updated: April 14, 2026 at 6:29 PM PDT*
 
 ## Overview
 
@@ -10,7 +10,7 @@ BurnBox is a compact Cloudflare-native control plane:
 - R2 stores file objects
 - D1 stores file metadata, upload state, share state, and audit logs
 
-BurnBox 2.3.0 has six major architectural layers:
+BurnBox 2.3.1 has six major architectural layers:
 
 - upload reliability through chunked multipart ingest
 - share-delivery separation through split domains and stable public handles
@@ -19,7 +19,7 @@ BurnBox 2.3.0 has six major architectural layers:
 - frontend module separation — the workspace inline script is now composed from focused client modules under `src/lib/client/`
 - resumable upload — the server holds confirmed part truth; the client queries it on re-entry and resumes from the first missing part without restarting the transfer
 
-The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.3.0 completes the resumable upload layer on top of the 2.2.2 frontend-module baseline.
+The current engineering baseline has been validated through large transfers up to `4.3 GB / 870 parts` and `11 GB / 2200 parts`. BurnBox 2.3.1 builds on the 2.3.0 resumable upload layer with a compliance documentation baseline covering data retention, privacy policy guidance, and legal risk tooling.
 
 One practical warning belongs at the architectural level:
 

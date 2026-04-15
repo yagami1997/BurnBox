@@ -1,6 +1,6 @@
 # Security Policy
 
-*Last updated: April 13, 2026 at 6:57 PM PDT*
+*Last updated: April 14, 2026 at 6:29 PM PDT*
 
 ## Supported scope
 
@@ -63,6 +63,9 @@ BurnBox follows several baseline controls:
 - downloads are delivered with `Cache-Control: private, no-store`
 - file durability is separated from temporary access capability
 - revocation and download exhaustion are treated as first-class invalidation states
+- share download signing uses a dedicated `SHARE_LINK_SECRET` isolated from the session secret
+- all responses carry security headers: `X-Frame-Options`, `Content-Security-Policy`, `Strict-Transport-Security`
+- authentication events, failed logins, and file operations are logged to D1 audit tables with IP and timestamp; see `docs/en/maintenance.md` for recommended retention windows
 
 ## Out of scope
 

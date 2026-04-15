@@ -1,6 +1,6 @@
 # Quickstart
 
-*Last updated: April 13, 2026 at 7:10 PM PDT*
+*Last updated: April 14, 2026 at 6:29 PM PDT*
 
 ## Requirements
 

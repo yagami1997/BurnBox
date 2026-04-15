@@ -1,10 +1,10 @@
 # Deployment
 
-*Last updated: April 14, 2026 at 5:03 AM PDT*
+*Last updated: April 14, 2026 at 6:29 PM PDT*
 
 ## Overview
 
-BurnBox 2.3.0 is designed around a split-domain deployment model plus an owner-account auth flow:
+BurnBox 2.3.1 is designed around a split-domain deployment model plus an owner-account auth flow:
 
 - a private workspace domain for authenticated administration, such as `https://console.example.com`
 - a public share domain for external file delivery, such as `https://relay.example.net`
@@ -241,3 +241,6 @@ That gives you privacy separation without introducing per-link DNS management.
 - [Architecture](architecture.md)
 - [Share Link Delivery Architecture](share-link-delivery.md)
 - [Troubleshooting](troubleshooting.md)
+- [Maintenance and Data Retention](maintenance.md)
+- [Privacy Policy Template](privacy-policy-template.md)
+- [Legal Risk Statement](legal-risk-statement.md)
