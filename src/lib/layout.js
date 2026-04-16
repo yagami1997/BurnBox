@@ -24,7 +24,6 @@ function renderDeploymentCard(dep, appEntryPath) {
           ${dep.workspaceHost ? row("Workspace host", dep.workspaceHost) : ""}
           ${dep.shareHost ? row("Share host", dep.shareHost) : ""}
           ${shareLinkRow}
-          ${dep.recoveryEmail ? row("Recovery email", dep.recoveryEmail) : row("Recovery email", "Not set")}
           ${row("Hostname-style sharing", dep.hostnameSharing ? "Enabled" : "Disabled")}
         </div>
       </section>
@@ -1275,7 +1274,6 @@ export function renderAppPage({ files, owner = null, apiBase = "/api", appEntryP
                       <div><span>Storage</span><strong>R2 archive</strong></div>
                       <div><span>Upload mode</span><strong>5 MiB multipart slices</strong></div>
                       <div><span>Delete mode</span><strong>Remove file and revoke shares</strong></div>
-                      <div><span>Private entry</span><strong>${escapeHtml(appEntryPath || "/")}</strong></div>
                     </div>
                   </div>
                 </div>
