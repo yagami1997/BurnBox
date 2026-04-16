@@ -16,18 +16,33 @@ function renderDeploymentCard(dep, appEntryPath) {
 
   return `
     <section class="layout app" style="margin-bottom:0;">
-      <section class="panel" style="padding:1.25rem 1.5rem;">
-        <h2 style="margin:0 0 0.75rem;font-size:1rem;font-weight:600;letter-spacing:0.02em;">Deployment</h2>
-        <div class="stats" style="gap:0.35rem;">
-          ${row("Version", BURNBOX_VERSION)}
-          ${row("Private entry", appEntryPath || "/")}
-          ${dep.workspaceHost ? row("Workspace host", dep.workspaceHost) : ""}
-          ${dep.shareHost ? row("Share host", dep.shareHost) : ""}
-          ${shareLinkRow}
-          ${row("Hostname-style sharing", dep.hostnameSharing ? "Enabled" : "Disabled")}
-        </div>
+      <section class="panel" style="padding:0;background:rgba(20,50,82,0.06);box-shadow:none;">
+        <details>
+          <summary style="padding:1rem 1.5rem;font-size:1rem;font-weight:600;letter-spacing:0.02em;cursor:pointer;list-style:none;display:flex;align-items:center;gap:0.5rem;">
+            <span style="opacity:0.45;font-size:0.75rem;" class="deploy-chevron">▶</span> ⚙️ Deployment <span class="deploy-hint" style="font-size:0.75rem;font-weight:400;opacity:0.4;margin-left:0.25rem;">— click to expand</span>
+          </summary>
+          <div class="stats" style="gap:0.35rem;padding:0 1.5rem 1.25rem;">
+            ${row("Version", BURNBOX_VERSION)}
+            ${row("Private entry", appEntryPath || "/")}
+            ${dep.workspaceHost ? row("Workspace host", dep.workspaceHost) : ""}
+            ${dep.shareHost ? row("Share host", dep.shareHost) : ""}
+            ${shareLinkRow}
+            ${row("Hostname-style sharing", dep.hostnameSharing ? "Enabled" : "Disabled")}
+          </div>
+        </details>
       </section>
-    </section>`;
+    </section>
+    <script>
+      (function() {
+        var det = document.currentScript.previousElementSibling.querySelector("details");
+        var chev = det.querySelector(".deploy-chevron");
+        var hint = det.querySelector(".deploy-hint");
+        det.addEventListener("toggle", function() {
+          chev.textContent = det.open ? "▼" : "▶";
+          if (hint) hint.style.display = det.open ? "none" : "";
+        });
+      })();
+    </script>`;
 }
 
 function renderFirstDeployBanner(dep, appEntryPath) {
