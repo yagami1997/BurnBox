@@ -138,10 +138,15 @@ export function script() {
           return;
         }
 
+        let response;
         try {
-          await fetch(apiUrl(\`/files/\${fileId}/abort-upload\`), { method: "POST" });
-        } catch {
-          // Ignore cleanup failures after the upload has already failed.
+          response = await fetch(apiUrl(\`/files/\${fileId}/abort-upload\`), { method: "POST" });
+        } catch (err) {
+          throw new Error(\`Abort request failed: \${String(err?.message || err)}\`);
+        }
+        // 404 = plan already gone; 409 = already completed — both are acceptable terminal states.
+        if (!response.ok && response.status !== 404 && response.status !== 409) {
+          throw new Error(\`Server returned \${response.status} when aborting upload.\`);
         }
       }
   `;

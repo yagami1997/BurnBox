@@ -23,8 +23,8 @@ All questions about this privacy policy should be directed to [YOUR CONTACT].
 
 If you claim ownership of this workspace, the following data is stored:
 
-- **Email address** — used to identify your account and, where configured, to send password-reset messages
-- **Recovery email address** — optional; used only for account recovery
+- **Email address** — used to identify your account
+- **Recovery email address** — optional; stored only if the operator chooses to keep one on file for a future recovery workflow
 - **Password hash** — your password is stored as a salted PBKDF2-SHA256 hash; the plaintext is never stored
 - **Recovery codes** — hashed one-time codes for account recovery
 
@@ -44,10 +44,10 @@ These records are used to detect and respond to unauthorized access attempts. Th
 
 The following data is logged when files are uploaded, deleted, shared, or downloaded:
 
-- **IP address** of the request
-- **Country code**
+- **Actor identifier** for the signed-in owner action, where applicable
 - **Action type** (upload, delete, share created, share revoked, download)
 - **File and share identifiers** (opaque internal IDs, not the file contents)
+- **Limited action metadata** such as internal storage key, expiry time, or download limit when relevant to the event
 - **Timestamp**
 
 These records are used to maintain an audit trail. They are retained for [1 year / YOUR RETENTION PERIOD] and then deleted.
@@ -65,7 +65,7 @@ When a share link is created, the following metadata is stored:
 - Download limit (if configured)
 - A cryptographic handle for URL routing
 
-No personal data about recipients is collected when a share link is accessed.
+BurnBox itself does not create a recipient account or recipient profile when a share link is accessed. If the operator's surrounding infrastructure logs request metadata, that logging should be described separately by the operator.
 
 ### 2.6 Session cookies
 

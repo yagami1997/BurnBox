@@ -63,9 +63,22 @@ export function script() {
         dismissBtn.className = "button is-light is-small";
         dismissBtn.textContent = "Dismiss";
         dismissBtn.addEventListener("click", async () => {
-          clearIncompleteUpload();
-          banner.remove();
-          await abortUpload(pending.fileId);
+          dismissBtn.disabled = true;
+          try {
+            await abortUpload(pending.fileId);
+            clearIncompleteUpload();
+            banner.remove();
+          } catch {
+            dismissBtn.disabled = false;
+            const existing = banner.querySelector(".dismiss-error");
+            if (!existing) {
+              const errMsg = document.createElement("span");
+              errMsg.className = "dismiss-error";
+              errMsg.style.cssText = "color:#c0392b;font-size:0.85em;width:100%;";
+              errMsg.textContent = "Server cleanup failed — try again or refresh the page.";
+              banner.appendChild(errMsg);
+            }
+          }
         });
 
         banner.append(msg, dismissBtn);
@@ -373,7 +386,7 @@ export function script() {
           try {
             await uploadFileInChunks(file, initData);
           } catch (error) {
-            await abortUpload(initData.fileId);
+            try { await abortUpload(initData.fileId); } catch { /* best-effort cleanup */ }
             clearUploadProgress();
             setStatus(String(error?.message || "Failed to upload file chunks."), true);
             return;
@@ -398,7 +411,7 @@ export function script() {
               throw new Error(completeData.error || "Failed to save file record.");
             }
           } catch (error) {
-            await abortUpload(initData.fileId);
+            try { await abortUpload(initData.fileId); } catch { /* best-effort cleanup */ }
             clearIncompleteUpload();
             clearUploadProgress();
             setStatus(String(error?.message || "Failed to save file record."), true);

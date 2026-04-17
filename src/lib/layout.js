@@ -4,7 +4,7 @@ import { script as clientFilesScript } from "./client/files.js";
 import { script as clientUploadScript } from "./client/upload.js";
 import { script as clientBootWiringScript } from "./client/boot-wiring.js";
 
-const BURNBOX_VERSION = "2.3.0";
+const BURNBOX_VERSION = "2.3.1";
 
 function renderDeploymentCard(dep, appEntryPath) {
   const row = (label, value, warn = false) =>

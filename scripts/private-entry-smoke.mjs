@@ -36,10 +36,23 @@ function run() {
     },
     apiBase: API_BASE,
     appEntryPath: APP_ENTRY_PATH,
+    deployment: {
+      workspaceHost: "workspace.example.com",
+      shareHost: "share.example.net",
+      shareLinkSecretConfigured: true,
+      hostnameSharing: true,
+    },
   });
 
   assertIncludes(appHtml, `apiBase: "${API_BASE}"`, "app boot apiBase");
   assertIncludes(appHtml, `appEntryPath: "${APP_ENTRY_PATH}"`, "app boot entry path");
+  assertIncludes(appHtml, "⚙️ Deployment", "deployment card renders");
+  assertIncludes(appHtml, "<span>Version</span><strong>2.3.1</strong>", "deployment card shows current version");
+  assertIncludes(appHtml, "<span>Private entry</span><strong>/your-private-entry</strong>", "deployment card shows private entry");
+  assertIncludes(appHtml, "<span>Workspace host</span><strong>workspace.example.com</strong>", "deployment card shows workspace host");
+  assertIncludes(appHtml, "<span>Share host</span><strong>share.example.net</strong>", "deployment card shows share host");
+  assertIncludes(appHtml, "<span>Share link secret</span><strong>Configured</strong>", "deployment card shows share secret status");
+  assertIncludes(appHtml, "<span>Hostname-style sharing</span><strong>Enabled</strong>", "deployment card shows hostname sharing status");
   assertIncludes(appHtml, "fetch(apiUrl(\"/files\"))", "refresh uses derived apiBase");
   assertIncludes(appHtml, "fetch(apiUrl(\"/auth/logout\"), { method: \"POST\" })", "logout uses derived apiBase");
   assertIncludes(appHtml, "fetch(apiUrl(\"/files/init-upload\")", "init-upload uses derived apiBase");

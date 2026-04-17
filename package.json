@@ -7,7 +7,9 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev --remote",
     "check": "wrangler deploy --dry-run",
-    "smoke:private-entry": "node scripts/private-entry-smoke.mjs"
+    "smoke:private-entry": "node scripts/private-entry-smoke.mjs",
+    "smoke:abort-upload": "node scripts/abort-upload-smoke.mjs",
+    "smoke": "npm run smoke:private-entry && npm run smoke:abort-upload"
   },
   "devDependencies": {
     "wrangler": "^4.11.1"
