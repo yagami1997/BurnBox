@@ -378,7 +378,8 @@ export async function resetPasswordWithRecoveryCode(env, input) {
   assertValidPassword(input.newPassword);
 
   const ownerId = owner?.id || OWNER_ID;
-  const lockedUntil = await getRecoveryLockUntil(env, ownerId);
+  const clientIp = input.clientIp || null;
+  const lockedUntil = await getRecoveryLockUntil(env, ownerId, clientIp);
   if (lockedUntil) {
     throw new Error("Recovery path temporarily locked");
   }
@@ -400,7 +401,7 @@ export async function resetPasswordWithRecoveryCode(env, input) {
   const codeMatches = Boolean(codeRow);
 
   if (!validOwner || !emailMatches || !codeMatches) {
-    const failureCount = (await countRecentRecoveryFailures(env, ownerId)) + 1;
+    const failureCount = (await countRecentRecoveryFailures(env, ownerId, clientIp)) + 1;
     const nextLockedUntil = failureCount >= RECOVERY_LOCK_THRESHOLD
       ? isoAfterMinutes(RECOVERY_LOCK_MINUTES)
       : null;
@@ -937,19 +938,20 @@ async function registerClaimFailure(env, clientIp) {
   return lockedUntil;
 }
 
-async function getRecoveryLockUntil(env, ownerId) {
+async function getRecoveryLockUntil(env, ownerId, clientIp) {
   if (!env.DB || !ownerId) {
     return null;
   }
 
+  const ip = clientIp || "__no_ip__";
   const row = await env.DB.prepare(
     `select json_extract(detail_json, '$.lockedUntil') as locked_until
      from auth_events
      where event_type = 'recovery_code_locked'
-       and json_extract(detail_json, '$.ownerId') = ?
+       and (json_extract(detail_json, '$.ownerId') = ? or ip = ?)
      order by created_at desc
      limit 1`,
-  ).bind(ownerId).first();
+  ).bind(ownerId, ip).first();
 
   const lockUntil = row?.locked_until || null;
   if (!lockUntil) {
@@ -958,19 +960,20 @@ async function getRecoveryLockUntil(env, ownerId) {
   return Date.parse(lockUntil) > Date.now() ? lockUntil : null;
 }
 
-async function countRecentRecoveryFailures(env, ownerId) {
+async function countRecentRecoveryFailures(env, ownerId, clientIp) {
   if (!env.DB || !ownerId) {
     return 0;
   }
 
+  const ip = clientIp || "__no_ip__";
   const row = await env.DB.prepare(
     `select count(*) as count
      from auth_events
      where event_type = 'recovery_code_used'
        and success = 0
-       and json_extract(detail_json, '$.ownerId') = ?
+       and (json_extract(detail_json, '$.ownerId') = ? or ip = ?)
        and created_at > ?`,
-  ).bind(ownerId, isoBeforeMinutes(RECOVERY_FAILURE_WINDOW_MINUTES)).first();
+  ).bind(ownerId, ip, isoBeforeMinutes(RECOVERY_FAILURE_WINDOW_MINUTES)).first();
   return Number(row?.count || 0);
 }
 
