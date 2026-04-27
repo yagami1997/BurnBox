@@ -399,6 +399,8 @@ What remains is the question of time — whether a system that has paused for ho
 
 A small system should remain legible to a single careful reader. That is not a constraint. It is the point.
 
+Some changes look frightening only because Git is honest about what changed.
+
 ---
 
 The Japanese documentation is a small gesture toward the idea that technical work should be readable in more than one language. To the friends at Kyoto University who made that feel worthwhile — thank you.
@@ -411,6 +413,6 @@ This project is released under the terms of the [GPL v3](LICENSE).
 
 <div align="center">
 
-<sub>Last updated: April 13, 2026 at 7:20 PM PDT</sub>
+<sub>Last updated: April 27, 2026 at 8:27 AM PDT</sub>
 
 </div>
