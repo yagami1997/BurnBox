@@ -403,7 +403,7 @@ Some changes look frightening only because Git is honest about what changed.
 
 ---
 
-The Japanese documentation is a small gesture toward the idea that technical work should be readable in more than one language. To the friends at Kyoto University who made that feel worthwhile — thank you.
+The Japanese documentation is a small gesture toward the idea that technical work should be readable in more than one language. It is also a quiet thank-you to the friends at Kyoto University who reminded me that software is never only about systems. It is also about the people who make the work feel worth carrying forward.
 
 ## License
 
