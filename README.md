@@ -385,21 +385,21 @@ Abuse or legal complaints about content on a third-party BurnBox deployment must
 
 ## Notes
 
-Every version of BurnBox has answered a different question.
+Every version of BurnBox has answered a different question, though the questions were rarely technical in the narrow sense.
 
-The first was whether large files could move through the edge at all. They could — but the lesson was not about bandwidth. It was about state. A system that cannot articulate what it knows after a failure cannot recover from one. Reliability is not a timeout problem. It is a state problem.
+The first was whether large files could move through the edge at all. They could — but the lesson was not about bandwidth. It was about state. A system that cannot say what it knows after a failure has not merely lost data; it has lost its account of itself. Reliability is not a timeout problem. It is a memory problem.
 
 The second was about identity. A share link is a capability — bounded, revocable, attached to a specific act of trust. When a link's stable identity and its secret material collapse into the same thing, the system loses the ability to say clearly who still has access and why. Separating `public_handle` from the token hash was not a refactor. It was a clarification of what kind of thing a link is.
 
-The third was about ownership. A deployment password in an environment variable is not an owner. It is a shared secret with no memory, no recovery path, and no face. Moving authentication into the product was an attempt to give the workspace something closer to a person at the other end of it.
+The third was about ownership. A deployment password in an environment variable is not an owner. It is a shared secret with no memory, no recovery path, and no face. Moving authentication into the product was an attempt to make the workspace answer to someone, not merely open for something.
 
 The fourth was about recovery. An interrupted upload is not a failed request — it is a system in a partially-committed state. The browser's memory of the transfer does not survive a page refresh. The server's record of each confirmed part does. The answer was to make the server the authority on part truth, and to let the client ask what the server already knows before deciding what remains to be done. That is not a clever trick. It is the only design that keeps recovery honest.
 
 What remains is the question of time — whether a system that has paused for hours or days can resume as confidently as one that paused for seconds. That is a harder problem, and one that will require the system to say something more precise about when a partial state is still worth returning to.
 
-A small system should remain legible to a single careful reader. That is not a constraint. It is the point.
+A small system should remain legible to a single careful reader. That is not a constraint. It is a form of respect.
 
-Some changes look frightening only because Git is honest about what changed.
+Some changes look frightening only because Git is honest about time, consequence, and the cost of pretending nothing moved.
 
 ---
 
