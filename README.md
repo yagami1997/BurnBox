@@ -34,7 +34,7 @@
 
 ## What It Does
 
-BurnBox is a private operator workspace for file storage and controlled distribution. It is not a public upload site.
+BurnBox is a private operator workspace for file storage and controlled distribution. It is deliberately not a public upload site.
 
 - files live in R2 storage you own and control
 - external access is a revocable capability link, not a permanent URL
