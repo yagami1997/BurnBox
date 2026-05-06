@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 import { renderAuthPage } from "../src/lib/auth-layout.js";
 import { renderAppPage } from "../src/lib/layout.js";
+import { renderPublicHostUnavailablePage, renderShareErrorPage } from "../src/lib/share-pages.js";
 
 const APP_ENTRY_PATH = "/your-private-entry";
 const API_BASE = `${APP_ENTRY_PATH}/api`;
@@ -82,6 +83,19 @@ function run() {
   assertNotIncludes(layoutSource, "fetch(\"/api/auth/logout\")", "app page should not fetch bare /api/auth/logout");
   assertNotIncludes(layoutSource, "fetch(\"/api/files/init-upload\")", "app page should not fetch bare /api/files/init-upload");
   assertNotIncludes(authLayoutSource, "postJson(\"/api/auth/login\"", "auth page should not post to bare /api/auth/login");
+
+  const notFoundHtml = renderPublicHostUnavailablePage({ status: 404 });
+  assertIncludes(notFoundHtml, "<meta http-equiv=\"refresh\" content=\"5; url=https://www.cloudflare.com/\" />", "public 404 redirects to Cloudflare");
+  assertIncludes(notFoundHtml, "Redirecting to <a href=\"https://www.cloudflare.com/\" rel=\"noreferrer\">Cloudflare</a> in <strong id=\"redirectCountdown\">5</strong> seconds.", "public 404 shows countdown");
+  assertIncludes(notFoundHtml, "location.replace(target);", "public 404 has script redirect fallback");
+
+  const badGatewayHtml = renderPublicHostUnavailablePage({ status: 502 });
+  assertIncludes(badGatewayHtml, "<span>HTTP 502</span>", "public 502 preserves status code");
+  assertIncludes(badGatewayHtml, "<h1>Bad gateway</h1>", "public 502 has matching title");
+
+  const unavailableShareHtml = renderShareErrorPage("unavailable");
+  assertIncludes(unavailableShareHtml, "<span>HTTP 503</span>", "share 503 preserves status code");
+  assertIncludes(unavailableShareHtml, "<meta http-equiv=\"refresh\" content=\"5; url=https://www.cloudflare.com/\" />", "share error redirects to Cloudflare");
 
   assertIncludes(workerSource, "const privateEntryPath = getAppEntryPath(env);", "worker reads APP_ENTRY_PATH");
   assertIncludes(workerSource, "const uploadPartMatch = privateRoutePath?.match(/^\\/api\\/files\\/([^/]+)\\/upload-part\\/?$/);", "worker upload-part route is prefixed");

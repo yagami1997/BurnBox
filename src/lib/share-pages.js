@@ -202,30 +202,44 @@ export function renderShareErrorPage(status) {
 
 export function renderPublicHostUnavailablePage(options = {}) {
   const statusCode = Number.isFinite(options.status) ? Number(options.status) : 503;
-  const copy = statusCode === 404
-    ? {
+  const copy = {
+    404: {
         statusCode: 404,
         title: "Not Found",
         description: "The requested resource could not be located.",
         detail: "The address may be invalid, incomplete, or no longer available.",
-      }
-    : {
+      },
+    502: {
+        statusCode: 502,
+        title: "Bad gateway",
+        description: "The requested endpoint is temporarily unreachable.",
+        detail: "A gateway condition prevented the request from completing. Please try again later.",
+      },
+    503: {
         statusCode: 503,
         title: "Service unavailable",
         description: "The requested endpoint is currently unavailable.",
         detail: "A critical service error or routing condition prevented the request from completing. Please try again later.",
-      };
+      },
+  }[statusCode] || {
+    statusCode: 503,
+    title: "Service unavailable",
+    description: "The requested endpoint is currently unavailable.",
+    detail: "A critical service error or routing condition prevented the request from completing. Please try again later.",
+  };
 
   return renderInfrastructureErrorPage(copy);
 }
 
 function renderInfrastructureErrorPage({ statusCode, title, description, detail }) {
   const accent = statusCode >= 500 ? "#f38020" : statusCode === 410 ? "#d97706" : "#f38020";
+  const redirectUrl = "https://www.cloudflare.com/";
   return `<!doctype html>
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="refresh" content="5; url=${redirectUrl}" />
         <title>${escapeHtml(title)}</title>
         <style>
           * { box-sizing: border-box; }
@@ -322,6 +336,24 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
             font-size: 1rem;
             line-height: 1.45;
           }
+          .redirect {
+            margin-top: 24px;
+            padding: 14px 16px;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            background: #fcfcfc;
+            color: #5a5a5a;
+            font-size: 0.94rem;
+            line-height: 1.5;
+          }
+          .redirect a {
+            color: #f38020;
+            font-weight: 700;
+            text-decoration: none;
+          }
+          .redirect a:hover {
+            text-decoration: underline;
+          }
           .footer {
             display: flex;
             justify-content: space-between;
@@ -368,6 +400,9 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
                   <span class="meta-value">${escapeHtml(title)}</span>
                 </div>
               </div>
+              <div class="redirect">
+                Redirecting to <a href="${redirectUrl}" rel="noreferrer">Cloudflare</a> in <strong id="redirectCountdown">5</strong> seconds.
+              </div>
             </div>
             <div class="footer">
               <span>Performance & security by <span class="brand">Cloudflare</span></span>
@@ -375,6 +410,21 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
             </div>
           </main>
         </div>
+        <script>
+          (function() {
+            var remaining = 5;
+            var target = "${redirectUrl}";
+            var output = document.getElementById("redirectCountdown");
+            var timer = setInterval(function() {
+              remaining -= 1;
+              if (output) output.textContent = String(Math.max(remaining, 0));
+              if (remaining <= 0) {
+                clearInterval(timer);
+                location.replace(target);
+              }
+            }, 1000);
+          })();
+        </script>
       </body>
     </html>`;
 }
