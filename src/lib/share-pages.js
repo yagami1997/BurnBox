@@ -232,14 +232,12 @@ export function renderPublicHostUnavailablePage(options = {}) {
 }
 
 function renderInfrastructureErrorPage({ statusCode, title, description, detail }) {
-  const accent = statusCode >= 500 ? "#f38020" : statusCode === 410 ? "#d97706" : "#f38020";
-  const redirectUrl = "https://www.cloudflare.com/";
+  const accent = "#143252";
   return `<!doctype html>
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta http-equiv="refresh" content="5; url=${redirectUrl}" />
         <title>${escapeHtml(title)}</title>
         <style>
           * { box-sizing: border-box; }
@@ -247,8 +245,8 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
             margin: 0;
             min-height: 100vh;
             background: #ffffff;
-            color: #222222;
-            font-family: Arial, Helvetica, sans-serif;
+            color: #273547;
+            font-family: "Avenir Next", "Segoe UI", Arial, Helvetica, sans-serif;
           }
           .shell {
             min-height: 100vh;
@@ -258,10 +256,10 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
           }
           main {
             width: min(860px, 100%);
-            border: 1px solid #d9d9d9;
+            border: 1px solid rgba(20, 50, 82, 0.14);
             border-radius: 8px;
             background: #ffffff;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 12px 32px rgba(20, 50, 82, 0.08);
             overflow: hidden;
           }
           .bar {
@@ -270,13 +268,13 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
             justify-content: space-between;
             gap: 12px;
             padding: 14px 20px;
-            border-bottom: 1px solid #d9d9d9;
-            background: #f7f7f7;
+            border-bottom: 1px solid rgba(20, 50, 82, 0.12);
+            background: #f4f8fb;
             font-size: 0.94rem;
-            color: #5a5a5a;
+            color: #4f6274;
           }
           .bar strong {
-            color: #2b2b2b;
+            color: ${accent};
             font-weight: 600;
           }
           .body {
@@ -296,17 +294,18 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
             font-size: clamp(2.2rem, 7vw, 4.2rem);
             font-weight: 600;
             letter-spacing: -0.04em;
+            color: #1f2d3d;
           }
           p {
             margin: 0;
-            color: #4c4c4c;
+            color: #4f6274;
             font-size: 1.03rem;
             line-height: 1.62;
             max-width: 640px;
           }
           .detail {
             margin-top: 14px;
-            color: #6a6a6a;
+            color: #6a7a8c;
             font-size: 0.97rem;
             max-width: 660px;
           }
@@ -318,41 +317,24 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
           }
           .meta-card {
             padding: 16px 18px;
-            border: 1px solid #e2e2e2;
+            border: 1px solid rgba(20, 50, 82, 0.12);
             border-radius: 6px;
-            background: #fafafa;
+            background: #f8fbfd;
           }
           .meta-label {
             display: block;
             margin-bottom: 8px;
-            color: #7a7a7a;
+            color: #1d436b;
             font-size: 0.76rem;
             text-transform: uppercase;
             letter-spacing: 0.12em;
+            font-weight: 600;
           }
           .meta-value {
             display: block;
-            color: #202020;
+            color: #1f2d3d;
             font-size: 1rem;
             line-height: 1.45;
-          }
-          .redirect {
-            margin-top: 24px;
-            padding: 14px 16px;
-            border: 1px solid #e8e8e8;
-            border-radius: 6px;
-            background: #fcfcfc;
-            color: #5a5a5a;
-            font-size: 0.94rem;
-            line-height: 1.5;
-          }
-          .redirect a {
-            color: #f38020;
-            font-weight: 700;
-            text-decoration: none;
-          }
-          .redirect a:hover {
-            text-decoration: underline;
           }
           .footer {
             display: flex;
@@ -360,15 +342,10 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
             align-items: center;
             gap: 16px;
             padding: 16px 20px 18px;
-            border-top: 1px solid #e2e2e2;
-            background: #fafafa;
-            color: #7a7a7a;
+            border-top: 1px solid rgba(20, 50, 82, 0.12);
+            background: #f4f8fb;
+            color: #4f6274;
             font-size: 0.9rem;
-          }
-          .brand {
-            color: #f38020;
-            font-weight: 700;
-            letter-spacing: 0.02em;
           }
           @media (max-width: 760px) {
             .footer {
@@ -400,31 +377,13 @@ function renderInfrastructureErrorPage({ statusCode, title, description, detail 
                   <span class="meta-value">${escapeHtml(title)}</span>
                 </div>
               </div>
-              <div class="redirect">
-                Redirecting to <a href="${redirectUrl}" rel="noreferrer">Cloudflare</a> in <strong id="redirectCountdown">5</strong> seconds.
-              </div>
             </div>
             <div class="footer">
-              <span>Performance & security by <span class="brand">Cloudflare</span></span>
-              <span>Reference ${escapeHtml(String(statusCode))}</span>
+              <span>BurnBox infrastructure response</span>
+              <span>Status ${escapeHtml(String(statusCode))}</span>
             </div>
           </main>
         </div>
-        <script>
-          (function() {
-            var remaining = 5;
-            var target = "${redirectUrl}";
-            var output = document.getElementById("redirectCountdown");
-            var timer = setInterval(function() {
-              remaining -= 1;
-              if (output) output.textContent = String(Math.max(remaining, 0));
-              if (remaining <= 0) {
-                clearInterval(timer);
-                location.replace(target);
-              }
-            }, 1000);
-          })();
-        </script>
       </body>
     </html>`;
 }
