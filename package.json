@@ -15,6 +15,7 @@
     "wrangler": "^4.11.1"
   },
   "overrides": {
+    "undici": "7.29.0",
     "wrangler": {
       "esbuild": "0.28.1"
     }
