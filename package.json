@@ -16,6 +16,7 @@
   },
   "overrides": {
     "undici": "7.29.0",
+    "sharp": "0.35.4",
     "wrangler": {
       "esbuild": "0.28.1"
     }
